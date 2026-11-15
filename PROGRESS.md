@@ -15,5 +15,6 @@
 
 ## Next
 
-- [ ] Game ports: rock_blaster, frank_the_frog (projects/<name>, test.py, README, screenshot)
+- [x] frank_the_frog (lynx-port-frog): projects/frank_the_frog, bot test (level 2), 50 fps
+- [ ] Game ports: rock_blaster (projects/<name>, test.py, README, screenshot)
 - [ ] SDK: small font, Suzy maths helpers, sprite collision helpers, music

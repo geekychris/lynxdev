@@ -1,0 +1,8 @@
+# a raft of two lily pads, 16x7 (B rim, C pad, 3 notch, D/8 flower)
+..BB3BB...BB3BB.
+.BCC3CCB.BCC3CCB
+BCCCCCCBBCCCCCCB
+BCDDCCCBBCCCCCCB
+BCD8CCCBBCCCCCCB
+.BCCCCB..BCCCCB.
+..BBBB....BBBB..

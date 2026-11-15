@@ -1,0 +1,2 @@
+# one pixel (scaled into bars)
+1

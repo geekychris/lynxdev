@@ -52,7 +52,8 @@ play-through test and a screenshot.
 
 | | Game | What it is |
 |---|---|---|
-| | *(coming: Rock Blaster, Frank the Frog)* | |
+| <img src="docs/images/frank_the_frog.png" width="160" alt="Frank the Frog"> | [Frank the Frog](projects/frank_the_frog) | hop Frank over five lanes of traffic and a river of logs and lily pads into the four ponds; Suzy-scaled title, Mikey sound, 50 fps; a bot test fills all four ponds |
+| | *(coming: Rock Blaster)* | |
 
 ## Projects
 
