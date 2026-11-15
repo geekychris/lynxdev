@@ -11,19 +11,19 @@ static uint8_t vol[4], decay[4];
 static int16_t sweep[4];
 static uint16_t hz_now[4];
 
-/* clock select 0..6 = 1 MHz / 2^n */
-static void set_period(uint8_t ch, uint16_t hz)
+#define R(a) LYNX_REG8(a)
+
+/* snd_period is in snd_period.s (Suzy divide, ~150 cycles). */
+
+#pragma static-locals (on)
+
+/* the channel's 8 registers: one pointer, then (ptr),y stores (cheap in cc65) */
+#define CH(ch) ((volatile uint8_t *)(0xFD20 + ((ch) << 3)))
+
+static void set_period(volatile uint8_t *a, uint16_t period)
 {
-    uint32_t half;
-    uint8_t sel = 0;
-    if (hz < 16) hz = 16;
-    half = 500000UL / hz;               /* timer underflows per second / 1 MHz */
-    while (half > 256 && sel < 6) { half >>= 1; ++sel; }
-    if (half > 256) half = 256;
-    if (half < 1) half = 1;
-    LYNX_AUD(ch, LYNX_AUD_BKUP) = (uint8_t)(half - 1);
-    LYNX_AUD(ch, LYNX_AUD_CTLA) = (uint8_t)(0x18 | sel);   /* reload + count, clock */
-    hz_now[ch] = hz;
+    a[LYNX_AUD_BKUP] = (uint8_t)period;
+    a[LYNX_AUD_CTLA] = (uint8_t)(0x18 | (uint8_t)(period >> 8));   /* reload + count, clock */
 }
 
 void snd_init(void)
@@ -36,9 +36,12 @@ void snd_init(void)
 
 void snd_off(uint8_t ch)
 {
-    LYNX_AUD(ch, LYNX_AUD_VOL) = 0;
-    LYNX_AUD(ch, LYNX_AUD_CTLA) = 0;
-    LYNX_AUD(ch, LYNX_AUD_OUT) = 0;
+    volatile uint8_t *a;
+    ch &= 3;
+    a = CH(ch);
+    a[LYNX_AUD_VOL] = 0;
+    a[LYNX_AUD_CTLA] = 0;
+    a[LYNX_AUD_OUT] = 0;
     vol[ch] = 0;
     sweep[ch] = 0;
 }
@@ -51,36 +54,58 @@ void snd_all_off(void)
 
 void snd_tone(uint8_t ch, uint16_t hz, uint8_t v, uint8_t d)
 {
+    snd_tone_p(ch, snd_period(hz), v, d);
+    hz_now[ch & 3] = hz;
+}
+
+void snd_tone_p(uint8_t ch, uint16_t period, uint8_t v, uint8_t d)
+{
+    volatile uint8_t *a;
     ch &= 3;
-    LYNX_AUD(ch, LYNX_AUD_CTLA) = 0;
-    LYNX_AUD(ch, LYNX_AUD_FEED) = 0x01;        /* tap 0 only: square wave */
-    LYNX_AUD(ch, LYNX_AUD_SHIFT) = 0;
-    LYNX_AUD(ch, LYNX_AUD_CTLB) = 0;
-    LYNX_AUD(ch, LYNX_AUD_VOL) = v & 0x7F;
-    vol[ch] = v & 0x7F;
+    a = CH(ch);
+    v &= 0x7F;
+    a[LYNX_AUD_CTLA] = 0;
+    a[LYNX_AUD_FEED] = 0x01;            /* tap 0 only: square wave */
+    a[LYNX_AUD_SHIFT] = 0;
+    a[LYNX_AUD_CTLB] = 0;
+    a[LYNX_AUD_VOL] = v;
+    vol[ch] = v;
     decay[ch] = d;
     sweep[ch] = 0;
-    set_period(ch, hz);
+    hz_now[ch] = 0;
+    set_period(a, period);
 }
 
 void snd_noise(uint8_t ch, uint8_t pitch, uint8_t v, uint8_t d)
 {
+    volatile uint8_t *a;
     ch &= 3;
-    LYNX_AUD(ch, LYNX_AUD_CTLA) = 0;
-    LYNX_AUD(ch, LYNX_AUD_FEED) = 0x33;        /* taps 0,1,4,5: long sequence */
-    LYNX_AUD(ch, LYNX_AUD_SHIFT) = 0x5A;
-    LYNX_AUD(ch, LYNX_AUD_CTLB) = 0x10;
-    LYNX_AUD(ch, LYNX_AUD_VOL) = v & 0x7F;
-    LYNX_AUD(ch, LYNX_AUD_BKUP) = (uint8_t)(4 + (pitch << 3));
-    LYNX_AUD(ch, LYNX_AUD_CTLA) = (uint8_t)(0x18 | 1);
-    vol[ch] = v & 0x7F;
+    a = CH(ch);
+    v &= 0x7F;
+    a[LYNX_AUD_CTLA] = 0;
+    a[LYNX_AUD_FEED] = 0x33;            /* taps 0,1,4,5: long sequence */
+    a[LYNX_AUD_SHIFT] = 0x5A;
+    a[LYNX_AUD_CTLB] = 0x10;
+    a[LYNX_AUD_VOL] = v;
+    a[LYNX_AUD_BKUP] = (uint8_t)(4 + (pitch << 3));
+    a[LYNX_AUD_CTLA] = (uint8_t)(0x18 | 1);
+    vol[ch] = v;
     decay[ch] = d;
     sweep[ch] = 0;
 }
 
 void snd_freq(uint8_t ch, uint16_t hz)
 {
-    set_period(ch & 3, hz);
+    ch &= 3;
+    set_period(CH(ch), snd_period(hz));
+    hz_now[ch] = hz;
+}
+
+void snd_freq_p(uint8_t ch, uint16_t period)
+{
+    ch &= 3;
+    set_period(CH(ch), period);
+    hz_now[ch] = 0;
 }
 
 void snd_sweep(uint8_t ch, int16_t hz_per_tick)
@@ -90,25 +115,33 @@ void snd_sweep(uint8_t ch, int16_t hz_per_tick)
 
 void snd_tick(void)
 {
-    uint8_t ch;
+    uint8_t ch, v, d;
+    int16_t h;
     for (ch = 0; ch < 4; ++ch) {
-        if (!vol[ch]) continue;
-        if (decay[ch]) {
-            if (vol[ch] <= decay[ch]) { snd_off(ch); continue; }
-            vol[ch] -= decay[ch];
-            LYNX_AUD(ch, LYNX_AUD_VOL) = vol[ch];
+        v = vol[ch];
+        if (!v) continue;
+        d = decay[ch];
+        if (d) {
+            if (v <= d) { snd_off(ch); continue; }
+            v -= d;
+            vol[ch] = v;
+            CH(ch)[LYNX_AUD_VOL] = v;
         }
-        if (sweep[ch]) {
-            int16_t h = (int16_t)hz_now[ch] + sweep[ch];
+        if (sweep[ch] && hz_now[ch]) {
+            h = (int16_t)hz_now[ch] + sweep[ch];
             if (h < 16 || h > 20000) { snd_off(ch); continue; }
-            set_period(ch, (uint16_t)h);
+            set_period(CH(ch), snd_period((uint16_t)h));
+            hz_now[ch] = (uint16_t)h;
         }
     }
 }
 
 uint8_t snd_active(void)
 {
-    uint8_t ch, m = 0;
-    for (ch = 0; ch < 4; ++ch) if (vol[ch]) m |= (uint8_t)(1 << ch);
+    uint8_t m = 0;
+    if (vol[0]) m |= 1;
+    if (vol[1]) m |= 2;
+    if (vol[2]) m |= 4;
+    if (vol[3]) m |= 8;
     return m;
 }

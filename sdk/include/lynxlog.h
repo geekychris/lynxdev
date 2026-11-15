@@ -47,6 +47,11 @@
 #define lynx_fail(why)    ((void)0)
 #define lynx_in_harness() 0
 #else
+/* Costs (guest CPU cycles, harness build): lynx_log_s ~16 a character
+   (asm), lynx_log_u ~150-400 a number, lynx_log (vsnprintf) ~600-900 a
+   character: 20-30k for a typical line, i.e. a large part of a 60 Hz frame
+   (~66k cycles). In per-frame code use lynx_log_s / lynx_log_u / lynx_log_c;
+   keep lynx_log for events. Release builds cost nothing. */
 /* printf-style (cc65: %d/%u/%x are 16-bit int, %ld/%lu for long). Output is
    cut at 127 characters. Pulls in vsnprintf (~2 KB). */
 extern void __cdecl__ lynx_log(const char *fmt, ...);

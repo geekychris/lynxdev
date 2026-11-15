@@ -36,6 +36,13 @@ Things that cost time, with what to do instead.
   The converter (`./lynx sprite`) writes them, plus a 0 pad byte on every
   line (the usual guard against Suzy's end-of-line quirks; it only adds
   transparent pixels).
+- **A 1-pixel 1-bpp *literal* sprite is 16 pixels wide**: literal lines are
+  whole bytes (8 pixels at 1 bpp) plus the pad byte, and the pixels after
+  the first are pen 0. In `TYPE_NORMAL` pen 0 is transparent, so nobody
+  notices; in `TYPE_BACKGROUND` / `TYPE_BACKNONCOLL` pen 0 is drawn, and a
+  bar made by scaling that sprite comes out ~8x too wide. For bars and
+  boxes use `spr_box()` (a packed 1-pixel sprite: exactly w x h at any
+  type) or `gfx_rect()`; give background art its real width.
 - **SCBs and data must stay put while Suzy draws.** `spr_draw` waits, so a
   local SCB is fine for that call, but a chain built over several frames
   must be static.
@@ -62,6 +69,16 @@ Things that cost time, with what to do instead.
   pointers to structs. Multiplying by a non-constant calls a library
   routine: use Suzy's maths or shifts.
 - `lynx_log` pulls in vsnprintf (~2 KB); `lynx_log_s` / `lynx_log_u` don't.
+- **Logging costs CPU time in the harness build.** `lynx_log` (vsnprintf)
+  costs ~600-900 cycles a character, 25-30k for a typical line: almost half
+  a 60 Hz frame (~66k cycles). `lynx_log_s` is ~20 cycles a character,
+  `lynx_log_u` ~160 a number, `lynx_log_c` ~5. Log events, not every frame;
+  in per-frame paths use the plain functions. Release builds (`RELEASE=1`)
+  cost nothing, so measure speed there.
+- **Integer division and `%` on variables** go through cc65's software
+  routines (hundreds of cycles; 32-bit ones thousands). Use shifts, tables,
+  `math_div32` / `math_mul16` (Suzy) or compile-time constants
+  (`SND_PERIOD(hz)` for sound).
   `lynx_log_u` still divides by 10 per digit (16-bit divides): a few
   thousand cycles; log in a busy frame with strings or subtract loops.
 - A 32-bit multiply (`(int32_t)a * b`) costs ~1000 cycles and a 16-bit

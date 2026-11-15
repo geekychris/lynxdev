@@ -52,6 +52,16 @@ void spr_color(SCB_REHV_PAL *s, uint8_t c);
 /* Map pen p to colour c. */
 void spr_pen(SCB_REHV_PAL *s, uint8_t p, uint8_t c);
 
+/* A solid w x h box of colour c at (x, y) as a sprite (a 1-pixel sprite
+   scaled by Suzy), to put in a chain: bars, backgrounds, HUD panels.
+   Exactly w x h whatever its type: don't build bars from 1-bpp *literal*
+   art instead (each data byte is 8 pixels, the 7 extra are pen 0: invisible
+   in TYPE_NORMAL, drawn in TYPE_BACKGROUND, making the bar ~8x too wide). */
+void spr_box(SCB_REHV_PAL *s, int16_t x, int16_t y, uint8_t w, uint8_t h, uint8_t c);
+#define spr_box_size(s, w, h) spr_scale(s, (uint16_t)(w) << 8, (uint16_t)(h) << 8)
+/* The packed 1-pixel (pen 1) sprite data spr_box uses. */
+extern const uint8_t spr_pixel_data[4];
+
 /* Draw a sprite (and the chain it heads) into the back buffer; waits for Suzy. */
 void __fastcall__ spr_draw(void *scb);
 

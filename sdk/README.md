@@ -24,6 +24,13 @@ Changes to `sdk/` go through a PR that keeps `./lynx selftest` green.
 
 ## Changelog
 
+- **1.2.0**: cheaper sound: `snd_tone` ~1.3k cycles (was ~6.4k; a sweep was a
+  32-bit software divide every frame), `snd_period` on Suzy's divider in asm
+  (~170), `SND_PERIOD(hz)` compile-time periods + `snd_tone_p` / `snd_freq_p`.
+  `spr_box` (exact w x h boxes as sprites). Log: `lynx_log_s` (~20 cycles a
+  character, was ~150) and `lynx_log_u` (~160, was ~1.3k) in asm. `math_mul16`
+  / `math_div32` ~200-270 cycles (were ~1.2k). Same API.
+
 - **1.1.0**: lynxtext.h (3x5 Suzy font, 40 columns), lynxmath.h (Suzy multiply/divide,
   `box_hit`).
 

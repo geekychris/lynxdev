@@ -5,6 +5,10 @@
 
 const uint8_t spr_pens_identity[8] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
 
+/* packed: one line of 3 bytes (offset), a literal packet of 1 pixel with
+   pen 1 (1 0000 1), the end-of-line packet (0 0000), then end of sprite. */
+const uint8_t spr_pixel_data[4] = { 3, 0x84, 0x00, 0x00 };
+
 static uint8_t bpp_bits(uint8_t bpp)
 {
     return (uint8_t)(((bpp - 1) & 3) << 6);
@@ -35,6 +39,22 @@ void spr_init_nopal(SCB_REHV *s, const uint8_t *data, uint8_t bpp)
     s->vpos = 0;
     s->hsize = SPR_SCALE_1;
     s->vsize = SPR_SCALE_1;
+}
+
+void spr_box(SCB_REHV_PAL *s, int16_t x, int16_t y, uint8_t w, uint8_t h, uint8_t c)
+{
+    uint8_t i;
+    s->sprctl0 = BPP_1 | TYPE_NONCOLL;
+    s->sprctl1 = PACKED | REHV;
+    s->sprcoll = NO_COLLIDE;
+    s->next = 0;
+    s->data = (unsigned char *)spr_pixel_data;
+    s->hpos = x;
+    s->vpos = y;
+    s->hsize = (uint16_t)w << 8;
+    s->vsize = (uint16_t)h << 8;
+    s->penpal[0] = (uint8_t)(c & 15);       /* pen 0 -> 0, pen 1 -> c */
+    for (i = 1; i < 8; ++i) s->penpal[i] = 0;
 }
 
 void spr_color(SCB_REHV_PAL *s, uint8_t c)

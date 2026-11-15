@@ -25,6 +25,10 @@ with Emulator() as emu:
     check("Suzy multiply and divide", emu.run_until("sdktest: math mul=120000 div=14285 rem=5", 5))
     check("Suzy multiply 0xFFFF^2", emu.run_until("sdktest: math big=4294836225", 5))
     check("box_hit", emu.run_until("sdktest: box 1 0", 5))
+    # 500000/440 = 1136 -> >>3 = 142 -> sel 3, reload 141 ($8D); 16 Hz: 31250 >> 6 = 488 -> capped 256 -> $6FF
+    check("snd_period (Suzy divide)", emu.run_until("sdktest: period 440=38d 16=6ff 20000=18", 5))
+    check("SND_PERIOD (compile time) agrees", emu.run_until("sdktest: SND_PERIOD 440=38d 16=6ff 20000=18", 5))
+    check("lynx_log_u", emu.run_until("sdktest: log_u 0 7 10 65535 1009\n", 5))
     check("tone starts at volume 100", emu.run_until("sdktest: sound on vol=100", 5))
     check("drawn", emu.run_until("sdktest: drawn", 60))
     h = emu.hw()
@@ -52,6 +56,8 @@ with Emulator() as emu:
     check("rect in recoloured pen 14", is_pen(135, 65, 14), px[135, 65])
     check("text drawn", any(is_pen(x, y, 15) for x in range(8, 56) for y in range(88, 96)))
     # small font: "Score" at (80,90) yellow; "00042" at (104,90) white
+    check("spr_box: 37x3 peach bar from (60,70)", is_pen(60, 70, 8) and is_pen(96, 72, 8)
+          and is_pen(97, 71, 1) and is_pen(59, 71, 1) and is_pen(80, 73, 1), (px[96, 72], px[97, 71]))
     check("small text: 'S' top bar at (81,90) yellow", is_pen(81, 90, 9) and is_pen(82, 90, 9), (px[81, 90], px[82, 90]))
     check("small text: transparent cell gap (83,90)", is_pen(83, 90, 1), px[83, 90])
     check("small text: zero-padded '0' at (104..106,90) white", all(is_pen(x, 90, 15) for x in (104, 105, 106)))
@@ -61,6 +67,14 @@ with Emulator() as emu:
     check("A -> noise", emu.run_until("sdktest: noise", 10))
     emu.press("OPTION1")
     check("OPTION1", emu.run_until("sdktest: option1", 10))
+    emu.press("OPTION2", hold_frames=1, release_frames=0)
+    check("OPTION2 -> sweep", emu.run_until("sdktest: sweep", 5))
+    seen = set()
+    for _ in range(6):
+        m = emu.hw()["mikey"]
+        seen.add((m.get("aud1tback"), m.get("aud1ctl")))
+        emu.run(1)
+    check("sweep changes channel 1's period every frame", len(seen) >= 5, seen)
     emu.press("PAUSE")
     check("PAUSE", emu.run_until("sdktest: pause", 10))
     if failures:

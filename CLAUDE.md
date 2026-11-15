@@ -88,6 +88,11 @@ Details: docs/mcp.md, docs/emulator-harness.md, emulator/README.md (raw protocol
 - **Text**: `gfx_text` is TGI's 8x8 font (20 columns); `text_small` (lynxtext.h) is a
   3x5 Suzy font (40 columns) for HUDs. **Maths**: `math_mul16`/`math_div32` (lynxmath.h)
   use Suzy's hardware unit; much faster than cc65's `*` and `/` on variables.
+- **Bars/boxes as sprites**: `spr_box()` (exact w x h). Scaling 1-bpp *literal* art makes
+  bars ~8x too wide in background sprite types (each byte is 8 pixels).
+- **Costs** (harness build): `lynx_log` ~25-30k cycles a line (vsnprintf), `lynx_log_s`
+  ~20 a char; `snd_tone` ~1.3k, `snd_tone_p(ch, SND_PERIOD(hz), ...)` less. A 60 Hz frame
+  is ~66k cycles.
 - **Palette**: 12-bit, GREEN registers `$FDA0+n`, BLUERED `$FDB0+n`. `gfx_palette`
   takes 0xRGB, `gfx_palette_gbr` the registers' 0xGBR (what the sprite tool writes).
 - cc65 printf: `%d/%u/%x` are 16-bit; use `%ld/%lu` with `long`. `lynx_log` output

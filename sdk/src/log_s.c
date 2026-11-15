@@ -1,20 +1,9 @@
-/* lynxlog.h: lynx_log_s, lynx_log_u, lynx_log_x, lynx_done, lynx_fail,
+/* lynxlog.h: lynx_log_x, lynx_done, lynx_fail,
    lynx_in_harness (no printf; lynx_log itself is log.c). */
 #include "lynxlog.h"
 
 #ifndef LYNX_NO_LOG
-void __fastcall__ lynx_log_s(const char *s)
-{
-    while (*s) LYNX_LOG_PORT = *s++;
-}
-
-void __fastcall__ lynx_log_u(unsigned int v)
-{
-    char d[6];
-    unsigned char n = 0;
-    do { d[n++] = (char)('0' + v % 10); v /= 10; } while (v);
-    while (n) LYNX_LOG_PORT = d[--n];
-}
+/* lynx_log_s and lynx_log_u are in log_fast.s (asm). */
 
 void __fastcall__ lynx_log_x(unsigned int v)
 {
