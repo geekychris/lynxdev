@@ -20,6 +20,9 @@ elif ! { have docker && docker info >/dev/null 2>&1; }; then
   native=1
 fi
 if [ $native = 1 ]; then
+  if cc65 --version 2>&1 | grep -qE 'V2\.(1[0-8]|[0-9])([^0-9]|$)'; then
+    warn "$(cc65 --version 2>&1 | head -1) is older than the pinned cc65 (2.19 git, $CC65_COMMIT): some SDK features and games build or draw wrong with it; use Docker (unset LYNX_NATIVE)"
+  fi
   exec make -C "$proj" LYNX_SDK="$LYNX_ROOT/sdk" "$@"
 fi
 

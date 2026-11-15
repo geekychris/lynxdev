@@ -59,12 +59,14 @@ cat <<EOT
 
 ${_c_g}Atari Lynx dev environment ready.${_c_0}
 
-  ./lynx run hello         hello in a window
-  ./lynx new mygame        start a project from the template
+  ./lynx arcade            the games menu (build + play in a window)
+  ./lynx new --game mygame start your own game (games/mygame)
+  ./lynx run mygame        build it and open it in a window
   ./lynx test mygame       headless tests
   ./lynx devbench --open   web UI + REST + MCP over HTTP (:3690)
   ./lynx doctor            diagnose problems
 
+Docs: docs/getting-started.md (tutorial), docs/game-dev.md, docs/debugging.md.
 Claude Code: open this directory with \`claude\`; the "lynx" MCP server in .mcp.json
 gives Claude build/boot/screenshot/input/memory/debugger tools (see CLAUDE.md).
 EOT

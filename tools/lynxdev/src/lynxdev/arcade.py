@@ -130,7 +130,7 @@ def build(game: dict, quiet: bool = True) -> bool:
 def play_window(game: dict) -> int:
     """Open the game in a window; returns when the window is closed (Esc)."""
     from .cli import CONTROLS
-    print(f"\n{game['title']}: window open. Esc (or closing the window) comes back here.")
+    print(f"\n{game['title']}: window open. Esc (or closing the window) comes back here.", flush=True)
     for c in game["controls"][:10]:
         print(f"   {c}")
     print(f"   window keys: {CONTROLS}")
@@ -169,10 +169,28 @@ def _port_busy(port: int) -> bool:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
+def _bench_root(port: int):
+    """The repo root a DevBench on the port serves (None: not a DevBench)."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=2) as r:
+            return json.loads(r.read()).get("root")
+    except Exception:
+        return None
+
+
 def start_devbench(port: int = 3690):
-    """Our own DevBench process (or None if one already answers on the port)."""
-    if _port_busy(port):
-        print(f"DevBench already running: http://127.0.0.1:{port}/ (the game's session shows there)")
+    """Our own DevBench process, on the first free port from 3690 (or None if
+    a DevBench of this checkout already runs: the game's session shows there)."""
+    for p in range(port, port + 10):
+        if not _port_busy(p):
+            port = p
+            break
+        if _bench_root(p) == str(ROOT):
+            print(f"DevBench already running: http://127.0.0.1:{p}/ (the game's session shows there)", flush=True)
+            return None
+    else:
+        print("no free port for DevBench (3690-3699)", flush=True)
         return None
     log = open(ROOT / "build" / "arcade-devbench.log", "w")
     exe = ROOT / ".venv" / "bin" / "lynxdev"
@@ -181,7 +199,7 @@ def start_devbench(port: int = 3690):
         if _port_busy(port):
             break
         time.sleep(0.1)
-    print(f"DevBench: http://127.0.0.1:{port}/ (pick the window session in the session list)")
+    print(f"DevBench: http://127.0.0.1:{port}/ (pick the window session in the session list)", flush=True)
     return proc
 
 
