@@ -49,10 +49,13 @@ static void logscore(void)
 #define LOGNL() ((void)0)
 #endif
 
+#ifndef LYNX_NO_LOG
 static const char *const state_names[] = { "title", "playing", "dying", "level", "gameover" };
+#endif
 
 static void die(const char *why, uint8_t snd)
 {
+    (void)why;
     lynx_log_s("frank: death ");
     lynx_log_s(why);
     logu(" row=", frog_row);
