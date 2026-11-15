@@ -242,6 +242,8 @@ def test_devbench():
         check("REST run_until", st == 200 and r["found"], str(r))
         st, png = req("GET", f"/api/sessions/{pid}/screen.png", raw=True)
         check("screen.png is a PNG", st == 200 and png[:4] == b"\x89PNG")
+        st, png = req("GET", "/api/screen.png?scale=2&t=1234", raw=True)
+        check("screen.png ignores the UI's ?t= cache buster", st == 200 and png[:4] == b"\x89PNG")
         st, r = req("GET", "/api/cmd/regs")
         check("GET on the selected session", st == 200 and "PC" in r)
         st, r = req("GET", "/api/cmd/scb_chain")
