@@ -131,7 +131,7 @@ def encode(grid: list[list[int]], bpp: int) -> bytes:
                 data.append((bits >> n) & 0xFF)
         if n:
             data.append((bits << (8 - n)) & 0xFF)
-        data.append(0)                      # pad: avoids Suzy's end-of-line bit bug
+        data.append(0)                      # pad: guards against Suzy's end-of-line quirks (transparent pixels)
         if len(data) + 1 > 255:
             raise SpriteError("a line is too long (more than 253 bytes)")
         out.append(len(data) + 1)
