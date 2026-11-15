@@ -217,7 +217,8 @@ async def run_cmd(request: Request):
 
 
 async def screen_png(request: Request):
-    a = {k: _coerce(v) for k, v in request.query_params.items()}
+    # only "scale": the UI adds a cache-busting ?t= that screenshot() would reject
+    a = {k: _coerce(v) for k, v in request.query_params.items() if k == "scale"}
     try:
         res = await run_in_threadpool(bench.call, request.path_params.get("pid"), "screenshot", a)
     except LookupError as ex:
