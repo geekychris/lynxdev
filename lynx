@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Atari Lynx dev environment – single entry point.
+#
+#   ./lynx setup                 install everything (idempotent)
+#   ./lynx doctor                check the environment
+#   ./lynx new <name>            create projects/<name> from the template
+#   ./lynx build <project>       compile -> projects/<p>/build/<p>.lnx (+ .map .lbl .dbg)
+#   ./lynx run <project|file>    window (free-running); ./lynx ctl and Claude can attach
+#   ./lynx serve <project|file> [--window] [--mode running]   headless session process
+#   ./lynx test <project>        projects/<p>/test.py if present, else wait for LYNX:DONE
+#   ./lynx log <project> [--frames N] [--press KEYS@FRAME]   guest log (lynx_log) dump
+#   ./lynx shot <project> -o out.png [--until TEXT] [--press KEYS@FRAME] [--scale 2]
+#   ./lynx video <project> -o out.gif|.mp4 [--until TEXT] [--frames N]
+#   ./lynx record <project> -o r.json --press A@200 ; ./lynx replay r.json --runs 2   deterministic replay
+#   ./lynx ctl [--port N] <cmd> [key=value ...]             remote-control a session (ctl help)
+#   ./lynx sessions              running sessions
+#   ./lynx symbols <project> [regex]
+#   ./lynx devbench [--port 3690] [--open]                  web UI + REST + MCP over HTTP
+#   ./lynx clean <project>
+#   ./lynx selftest              build + test everything (do this before saying "done")
+#   ./lynx lynxdev ...           raw access to the lynxdev CLI
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+source "$ROOT/scripts/lib.sh"
+
+LYNXDEV="$ROOT/.venv/bin/lynxdev"
+PY="$ROOT/.venv/bin/python"
+
+need_lynxdev() { [ -x "$LYNXDEV" ] || die "python env missing – run ./lynx setup (or scripts/setup-python.sh)"; }
+need_emu()   { [ -x "$LYNXH_BIN" ] || die "emulator not built: $LYNXH_BIN (run ./lynx setup, or scripts/build-emulator.sh)"; }
+
+# Build quietly; show the compiler output only if it fails.
+quiet_build() {
+  mkdir -p "$ROOT/build"
+  local log="$ROOT/build/last-build.log"
+  "$ROOT/bin/lynx-make" -C "$1" >"$log" 2>&1 || { cat "$log"; die "build failed"; }
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  setup)   exec "$ROOT/setup.sh" "$@" ;;
+  doctor)  exec "$ROOT/scripts/doctor.sh" "$@" ;;
+  build)   [ $# -ge 1 ] || die "usage: ./lynx build <project>"
+           p="$1"; shift; exec "$ROOT/bin/lynx-make" -C "$ROOT/projects/$p" "$@" ;;
+  clean)   [ $# -ge 1 ] || die "usage: ./lynx clean <project>"
+           exec "$ROOT/bin/lynx-make" -C "$ROOT/projects/$1" clean ;;
+  devbench|ctl|sessions)
+           need_lynxdev; exec "$LYNXDEV" "$cmd" "$@" ;;
+  replay)  need_lynxdev; need_emu; exec "$LYNXDEV" replay "$@" ;;
+  run|serve|log|shot|symbols|video|record)
+           need_lynxdev; need_emu
+           if [ $# -ge 1 ] && [ -f "$ROOT/projects/$1/Makefile" ]; then
+             # rebuild projects so you always run what you just edited
+             quiet_build "$ROOT/projects/$1"
+           fi
+           exec "$LYNXDEV" "$cmd" "$@" ;;
+  test)    need_lynxdev; need_emu; [ $# -ge 1 ] || die "usage: ./lynx test <project>"
+           t="$1"; shift
+           if [ -f "$ROOT/projects/$t/Makefile" ]; then
+             quiet_build "$ROOT/projects/$t"
+             # projects can ship a host-side test script with richer checks
+             if [ -f "$ROOT/projects/$t/test.py" ] && [ $# -eq 0 ]; then
+               exec "$PY" "$ROOT/projects/$t/test.py"
+             fi
+           fi
+           exec "$LYNXDEV" test "$t" "$@" ;;
+  new)     [ $# -ge 1 ] || die "usage: ./lynx new <name>"
+           name="$1"
+           [[ "$name" =~ ^[a-z][a-z0-9_]*$ ]] || die "name must be lowercase [a-z0-9_]"
+           dest="$ROOT/projects/$name"
+           [ ! -e "$dest" ] || die "$dest already exists"
+           cp -R "$ROOT/sdk/template" "$dest"
+           rm -rf "$dest/build"
+           for f in Makefile src/main.c test.py; do
+             sed -i.bak -e "s/__NAME__/$name/g" "$dest/$f" && rm -f "$dest/$f.bak"
+           done
+           ok "created projects/$name  –  ./lynx run $name" ;;
+  selftest)
+           need_lynxdev; need_emu
+           mkdir -p "$ROOT/build"
+           fails=0
+           # tests must write only to (git-ignored) build directories: remember the
+           # working tree now (status + content hash of every changed/untracked file)
+           tree_state() {
+             git -C "$ROOT" status --porcelain=v1 --untracked-files=all | while IFS= read -r l; do
+               f="${l:3}"; f="${f#\"}"; f="${f%\"}"
+               printf '%s %s\n' "$l" "$(git -C "$ROOT" hash-object "$f" 2>/dev/null || echo gone)"
+             done | sort
+           }
+           tree_before="$(tree_state)"
+           for d in "$ROOT"/projects/*/; do
+             p="$(basename "$d")"; [ -f "$d/Makefile" ] || continue
+             step "$p"
+             if ! "$ROOT/bin/lynx-make" -C "$d" >"$ROOT/build/selftest-$p.log" 2>&1; then
+               tail -20 "$ROOT/build/selftest-$p.log"; warn "build failed (build/selftest-$p.log)"; fails=$((fails+1)); continue
+             fi
+             "$0" test "$p" || fails=$((fails+1))
+           done
+           step "only our own processes are ever stopped"
+           if grep -rnE "\b(pkill|killall)\b" "$ROOT/tools/lynxdev/src" "$ROOT/scripts" "$ROOT/bin" "$ROOT/lynx" | grep -v "kill-guard"; then  # kill-guard
+             warn "a name-based kill (other agents' and the user's emulators share this machine)"; fails=$((fails+1))
+           else
+             ok "sessions stop their own PID only"
+           fi
+           for t in "$ROOT"/tools/lynxdev/tests/test_*.py; do
+             [ -f "$t" ] || continue
+             n="$(basename "$t" .py)"
+             step "$n"
+             if "$PY" "$t" >"$ROOT/build/selftest-$n.log" 2>&1; then
+               ok "$n ($(grep -c '  PASS' "$ROOT/build/selftest-$n.log") checks)"
+             else
+               grep -E "FAIL|Error|error" "$ROOT/build/selftest-$n.log" | tail -20; warn "$n failed (build/selftest-$n.log)"; fails=$((fails+1))
+             fi
+           done
+           step "the run left the working tree as it was"
+           changed="$(diff <(printf '%s\n' "$tree_before") <(tree_state) | grep '^>' | cut -c3- || true)"
+           if [ -n "$changed" ]; then
+             printf '%s\n' "$changed" | sed 's/^/    /'
+             warn "tests wrote files outside build/ (above: git status + content hash after the run); write test output to build/"
+             fails=$((fails+1))
+           else
+             ok "no tracked or new files changed (tests wrote only to build/)"
+           fi
+           [ "$fails" -eq 0 ] && ok "all pass" || die "$fails check(s) failed" ;;
+  lynxdev) need_lynxdev; exec "$LYNXDEV" "$@" ;;
+  help|-h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *)       die "unknown command '$cmd' (./lynx help)" ;;
+esac

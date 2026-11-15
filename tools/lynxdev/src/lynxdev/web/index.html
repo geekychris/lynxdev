@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lynx DevBench</title>
+<style>
+:root {
+  --bg: #f3f2ee; --panel: #ffffff; --ink: #1c1c1a; --muted: #6a6a64; --line: #d8d7cf;
+  --accent: #e0662a; --accent2: #2a62d8; --ok: #1f8a3b; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141413; --panel: #1e1e1c; --ink: #ecebe5; --muted: #9a9991; --line: #34332f;
+          --accent: #ff8a4c; --accent2: #6aa0ff; --ok: #4cc46b; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px;
+         border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 16px; margin: 0 12px 0 0; white-space: nowrap; }
+header h1 span { display: inline-block; width: 26px; height: 14px; margin-right: 8px; vertical-align: -2px;
+  border-radius: 7px; background: linear-gradient(90deg, #e0662a, #f2c418); }
+main { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 1000px) { main { grid-template-columns: minmax(0, 1fr); } }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; margin-bottom: 16px; }
+section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+.screen { width: 100%; image-rendering: pixelated; background: #000; border-radius: 4px; display: block; aspect-ratio: 160/102; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+button, select, input { font: inherit; padding: 5px 9px; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--bg); color: var(--ink); }
+button { cursor: pointer; } button:hover { border-color: var(--accent2); }
+button.primary { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+button.held { background: var(--accent); color: #fff; border-color: var(--accent); }
+input.wide { flex: 1; min-width: 120px; }
+pre { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
+  padding: 8px; margin: 0; overflow: auto; max-height: 280px; white-space: pre-wrap; word-break: break-all; }
+.status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+.err { color: var(--accent); }
+.pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 34px); gap: 4px; }
+.pad button { padding: 0; }
+.pal { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.pal div { border: 1px solid var(--line); border-radius: 4px; height: 30px; font: 10px var(--mono);
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 2px; text-shadow: 0 0 2px #000; color: #fff; }
+.tabs button.on { border-color: var(--accent2); color: var(--accent2); }
+</style>
+</head>
+<body>
+<header>
+  <h1><span></span>Lynx DevBench</h1>
+  <select id="sessions" title="session"></select>
+  <select id="projects" title="project"></select>
+  <button id="boot" class="primary">Boot headless</button>
+  <button id="bootw">Boot in window</button>
+  <button id="build">Build</button>
+  <button id="test">Test</button>
+  <button id="stop">Stop session</button>
+  <span class="status" id="msg"></span>
+</header>
+<main>
+  <div>
+    <section>
+      <h2>Screen</h2>
+      <img id="screen" class="screen" alt="emulator screen">
+      <div class="row">
+        <button data-run="1">+1 frame</button><button data-run="60">+1 s</button><button data-run="300">+5 s</button>
+        <button id="pause">Pause</button><button id="resume">Resume</button>
+        <label><input type="checkbox" id="live"> live</label>
+        <span class="status" id="stat"></span>
+      </div>
+      <div class="row" style="align-items:flex-start; gap:16px">
+        <div class="pad">
+          <span></span><button data-btn="UP">&#9650;</button><span></span>
+          <button data-btn="LEFT">&#9664;</button><span></span><button data-btn="RIGHT">&#9654;</button>
+          <span></span><button data-btn="DOWN">&#9660;</button><span></span>
+        </div>
+        <div>
+          <div class="row"><button data-btn="A">A</button><button data-btn="B">B</button>
+            <button data-btn="OPTION1">Opt 1</button><button data-btn="OPTION2">Opt 2</button><button data-btn="PAUSE">Pause</button></div>
+          <div class="row"><label><input type="checkbox" id="holdmode"> hold (click again to release)</label></div>
+          <div class="row"><input id="keys" style="width:150px" placeholder="UP+A"><button id="press">Press</button></div>
+        </div>
+      </div>
+      <div class="row">
+        <button id="reset">Reset</button><button id="reload">Reload</button>
+        <button id="reboot">Reboot</button><button id="cp">Checkpoint</button>
+        <select id="rotate" title="rotation"><option>none</option><option>left</option><option>right</option></select>
+      </div>
+      <div class="row">
+        <input id="replay" class="wide" placeholder="replay file, e.g. build/r.json"><button id="saverep">Save replay</button><button id="playrep">Replay</button>
+      </div>
+    </section>
+    <section>
+      <h2>Console</h2>
+      <div class="row">
+        <input id="cmd" placeholder="command (help)" style="width:150px">
+        <input id="args" class="wide" placeholder='args JSON, e.g. {"addr":"main"}'>
+        <button id="send">Send</button>
+      </div>
+      <pre id="out"></pre>
+    </section>
+  </div>
+  <div>
+    <section>
+      <h2>Guest log (lynx_log)</h2>
+      <pre id="log" style="max-height:300px"></pre>
+      <div class="row"><input id="until" class="wide" placeholder="run until log text"><button id="rununtil">Run until</button></div>
+    </section>
+    <section>
+      <h2>Debugger</h2>
+      <div class="row">
+        <input id="bp" placeholder="symbol or $addr" style="width:160px">
+        <button id="break">Break</button><button id="watch">Watch (w)</button><button id="cont">Continue</button>
+        <button id="step">Step</button><button id="over">Over</button><button id="del">Delete all</button>
+      </div>
+      <div class="grid2"><pre id="regs"></pre><pre id="dis"></pre></div>
+    </section>
+    <section>
+      <div class="row tabs">
+        <button data-tab="mem" class="on">Memory</button><button data-tab="hw">Suzy / Mikey</button>
+        <button data-tab="pal">Palette</button><button data-tab="scb">Sprites (SCB chain)</button>
+      </div>
+      <div id="tab-mem">
+        <div class="row"><input id="memaddr" value="$0200" style="width:140px"><input id="memlen" value="256" style="width:70px">
+          <select id="memspace"><option>cpu</option><option>ram</option></select><button id="memgo">Read</button></div>
+        <pre id="mem"></pre>
+      </div>
+      <div id="tab-hw" hidden><pre id="hw"></pre></div>
+      <div id="tab-pal" hidden><div class="pal" id="pal"></div></div>
+      <div id="tab-scb" hidden>
+        <div class="row"><input id="scbstart" placeholder="start (default SCBNEXT)" style="width:200px"><button id="scbgo">Walk</button></div>
+        <pre id="scb"></pre>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let busy = false, tab = "mem";
+const held = new Set();
+async function api(path, body, method) {
+  const r = await fetch(path, {method: method || (body !== undefined ? "POST" : "GET"),
+    headers: {"Content-Type": "application/json"}, body: body !== undefined ? JSON.stringify(body) : undefined});
+  const t = r.headers.get("content-type") || "";
+  const d = t.includes("json") ? await r.json() : await r.text();
+  if (!r.ok) throw new Error(d.error || r.statusText);
+  return d;
+}
+const cmd = (name, args) => api("/api/cmd/" + name, args || {});
+const hex = (v, n) => (v ?? 0).toString(16).toUpperCase().padStart(n, "0");
+function msg(t, bad) { $("msg").textContent = t; $("msg").className = "status" + (bad ? " err" : ""); }
+async function guard(fn) { try { await fn(); } catch (e) { msg(e.message, true); } }
+
+async function loadSessions() {
+  const ss = await api("/api/sessions");
+  $("sessions").innerHTML = ss.length ? ss.map(s => `<option value="${s.pid}" ${s.selected ? "selected" : ""}>` +
+    `pid ${s.pid} · ${s.window ? "window" : "headless"} · ${(s.program || "no cart").split("/").pop()}</option>`).join("")
+    : "<option>no sessions</option>";
+  return ss.length;
+}
+async function loadProjects() {
+  const ps = await api("/api/projects");
+  $("projects").innerHTML = ps.map(p => `<option value="${p.name}">${p.name}${p.built.length ? "" : " (not built)"}</option>`).join("");
+}
+async function refreshTab() {
+  if (tab === "mem") {
+    const r = await cmd("read_mem", {addr: $("memaddr").value, length: +$("memlen").value || 128, space: $("memspace").value});
+    $("mem").textContent = r.dump;
+  } else if (tab === "hw") {
+    const h = await cmd("hw");
+    $("hw").textContent = Object.entries(h).map(([chip, regs]) => chip.toUpperCase() + "\n" +
+      Object.entries(regs).map(([k, v]) => `  ${k.padEnd(12)} ${Array.isArray(v) ? v.map(x => hex(x, 2)).join(" ") : hex(v, 2)}`).join("\n")).join("\n\n");
+  } else if (tab === "pal") {
+    const p = await cmd("palette");
+    $("pal").innerHTML = p.rgb.map((c, i) => `<div style="background:rgb(${c.join(",")})" title="${i}: ${p.raw[i] !== undefined ? hex(p.raw[i], 3) : ""}">${i}</div>`).join("");
+  } else if (tab === "scb") {
+    const a = $("scbstart").value ? {start: $("scbstart").value} : {};
+    const r = await cmd("scb_chain", a);
+    $("scb").textContent = r.scbs.map(e => `$${hex(e.addr, 4)}  ${e.bpp}bpp type ${e.type}${e.literal ? " literal" : ""}${e.skip ? " skip" : ""}` +
+      `  pos ${e.hpos ?? "-"},${e.vpos ?? "-"}  size ${e.hsize !== undefined ? hex(e.hsize, 4) + "x" + hex(e.vsize, 4) : "-"}` +
+      `  data $${hex(e.data, 4)}  next $${hex(e.next, 4)}`).join("\n") || "(empty chain)";
+  }
+}
+async function refresh() {
+  if (!(await loadSessions())) { $("stat").textContent = ""; return; }
+  $("screen").src = "/api/screen.png?scale=1&t=" + Date.now();
+  const st = await cmd("status");
+  $("stat").textContent = `frame ${st.since_load} · ${st.hz} Hz · PC $${hex(st.pc, 4)}` +
+    (st.pc_symbol ? ` (${st.pc_symbol})` : "") + (st.paused ? " · paused" : " · running") +
+    (st.signal >= 0 ? ` · signal ${st.signal}` : "");
+  $("rotate").value = st.rotate || "none";
+  const lg = await cmd("log", {all: true});
+  $("log").textContent = lg.text.split("\n").slice(-200).join("\n");
+  $("log").scrollTop = 1e9;
+  const r = await cmd("regs");
+  $("regs").textContent = `PC  ${hex(r.PC, 4)}${r.pc_symbol ? "  " + r.pc_symbol : ""}\nA   ${hex(r.A, 2)}\nX   ${hex(r.X, 2)}\n` +
+    `Y   ${hex(r.Y, 2)}\nS   ${hex(r.S, 2)}\nP   ${hex(r.P, 2)}  ${r.FLAGS}`;
+  $("dis").textContent = (await cmd("disasm", {addr: "pc", count: 12})).listing;
+  await refreshTab();
+}
+async function act(fn) { if (busy) return; busy = true; await guard(async () => { await fn(); await refresh(); }); busy = false; }
+
+$("sessions").onchange = () => act(() => api(`/api/sessions/${$("sessions").value}/select`, {}));
+$("boot").onclick = () => act(async () => { msg("starting…"); await api("/api/sessions", {project: $("projects").value}); msg("session started"); });
+$("bootw").onclick = () => act(async () => { msg("starting…"); await api("/api/sessions", {project: $("projects").value, window: true}); msg("window session started"); });
+$("build").onclick = () => act(async () => { msg("building…"); const r = await api(`/api/projects/${$("projects").value}/build`, {}); $("out").textContent = r.output; msg(r.ok ? "build OK" : "build FAILED", !r.ok); await loadProjects(); });
+$("test").onclick = () => act(async () => { msg("testing…"); const r = await api(`/api/projects/${$("projects").value}/test`, {}); $("out").textContent = r.output; msg(r.ok ? "tests PASS" : "tests FAIL", !r.ok); });
+$("stop").onclick = () => act(async () => { await api(`/api/sessions/${$("sessions").value}`, undefined, "DELETE"); msg("stopped"); });
+document.querySelectorAll("[data-run]").forEach(b => b.onclick = () => act(() => cmd("run", {frames: +b.dataset.run})));
+document.querySelectorAll("[data-btn]").forEach(b => b.onclick = () => act(async () => {
+  const k = b.dataset.btn;
+  if ($("holdmode").checked) {
+    if (held.has(k)) { held.delete(k); b.classList.remove("held"); await cmd("release", {keys: k}); }
+    else { held.add(k); b.classList.add("held"); await cmd("hold", {keys: k}); }
+  } else await cmd("press", {keys: k});
+}));
+$("reset").onclick = () => act(() => cmd("reset"));
+$("reload").onclick = () => act(() => cmd("reload"));
+$("reboot").onclick = () => act(async () => { msg("rebooting…"); await cmd("reboot"); msg("rebooted"); });
+$("rotate").onchange = () => act(() => cmd("rotate", {value: $("rotate").value}));
+$("cp").onclick = () => act(async () => { const r = await cmd("checkpoint"); msg(`checkpoint ${r.label} ${r.screen.slice(0, 8)}`); });
+$("saverep").onclick = () => act(async () => { const r = await cmd("save_replay", {path: $("replay").value}); msg(`saved ${r.events} events`); });
+$("playrep").onclick = () => act(async () => { const r = await cmd("replay", {path: $("replay").value}); msg(r.ok ? "replay matches" : "replay MISMATCH", !r.ok); });
+$("pause").onclick = () => act(() => cmd("pause"));
+$("resume").onclick = () => act(() => cmd("resume"));
+$("press").onclick = () => act(() => cmd("press", {keys: $("keys").value}));
+$("rununtil").onclick = () => act(async () => { const r = await cmd("run_until", {text: $("until").value}); msg(r.found ? `found at frame ${r.frame}` : `not found (${r.reason})`, !r.found); });
+$("break").onclick = () => act(() => cmd("break", {addr: $("bp").value}));
+$("watch").onclick = () => act(() => cmd("watch", {addr: $("bp").value}));
+$("cont").onclick = () => act(async () => { const r = await cmd("continue", {max_frames: 600}); msg(r.stopped ? `stopped at ${r.symbol || r.pc} (${r.break})` : "no break within 600 frames"); });
+$("step").onclick = () => act(() => cmd("stepi"));
+$("over").onclick = () => act(() => cmd("step_over"));
+$("del").onclick = () => act(() => cmd("delete"));
+$("memgo").onclick = () => act(async () => {});
+$("scbgo").onclick = () => act(async () => {});
+document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll("[data-tab]").forEach(x => x.classList.toggle("on", x === b));
+  ["mem", "hw", "pal", "scb"].forEach(t => $("tab-" + t).hidden = t !== tab);
+  act(async () => {});
+});
+$("send").onclick = () => act(async () => {
+  const r = await cmd($("cmd").value || "help", $("args").value ? JSON.parse($("args").value) : {});
+  if (r && r.png_b64) delete r.png_b64;
+  $("out").textContent = typeof r === "string" ? r : (r.listing || r.dump || r.output || JSON.stringify(r, null, 1));
+});
+$("cmd").onkeydown = $("args").onkeydown = (e) => { if (e.key === "Enter") $("send").click(); };
+setInterval(() => { if ($("live").checked && !busy) act(async () => {}); }, 300);
+guard(async () => { await loadProjects(); await refresh(); });
+</script>
+</body>
+</html>
