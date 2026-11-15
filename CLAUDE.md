@@ -85,6 +85,9 @@ Details: docs/mcp.md, docs/emulator-harness.md, emulator/README.md (raw protocol
   or statics, not stack temporaries you return from). Pen 0 is transparent; data
   from `./lynx sprite` (literal lines + a 0 pad byte each). A flipped sprite mirrors
   around its position (vflip draws upward from vpos).
+- **Text**: `gfx_text` is TGI's 8x8 font (20 columns); `text_small` (lynxtext.h) is a
+  3x5 Suzy font (40 columns) for HUDs. **Maths**: `math_mul16`/`math_div32` (lynxmath.h)
+  use Suzy's hardware unit; much faster than cc65's `*` and `/` on variables.
 - **Palette**: 12-bit, GREEN registers `$FDA0+n`, BLUERED `$FDB0+n`. `gfx_palette`
   takes 0xRGB, `gfx_palette_gbr` the registers' 0xGBR (what the sprite tool writes).
 - cc65 printf: `%d/%u/%x` are 16-bit; use `%ld/%lu` with `long`. `lynx_log` output

@@ -24,6 +24,9 @@ Changes to `sdk/` go through a PR that keeps `./lynx selftest` green.
 
 ## Changelog
 
+- **1.1.0**: lynxtext.h (3x5 Suzy font, 40 columns), lynxmath.h (Suzy multiply/divide,
+  `box_hit`).
+
 - **1.0.0**: first release: lynx.cfg / lynx-coll.cfg memory maps, project.mk,
   log ($FCF0/$FCF1, compiled out with RELEASE=1), TGI-based screen + frame
   counter, palette, shapes, text, Suzy sprites (lynxspr.h), input, Mikey sound

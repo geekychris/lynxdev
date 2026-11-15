@@ -7,5 +7,7 @@
 #include "lynxrnd.h"
 #include "lynxspr.h"
 #include "lynxsnd.h"
+#include "lynxtext.h"
+#include "lynxmath.h"
 #include "lynxlog.h"
 #endif

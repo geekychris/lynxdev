@@ -34,7 +34,8 @@ Things that cost time, with what to do instead.
 - **Literal data needs its length bytes**: each line starts with its length
   (including that byte); a 0 ends the sprite and a 1 means "next quadrant".
   The converter (`./lynx sprite`) writes them, plus a 0 pad byte on every
-  line (avoids Suzy's bug with data that ends exactly at a line's last bit).
+  line (the usual guard against Suzy's end-of-line quirks; it only adds
+  transparent pixels).
 - **SCBs and data must stay put while Suzy draws.** `spr_draw` waits, so a
   local SCB is fine for that call, but a chain built over several frames
   must be static.

@@ -20,6 +20,8 @@ static void draw(void)
     spr_draw(&c1);                       /* draws c1 -> c2 -> c3 */
     gfx_rect(130, 60, 10, 10, 14);
     gfx_text(8, 88, COLOR_WHITE, "SDK OK");
+    text_small(80, 90, COLOR_YELLOW, "Score");
+    text_small_u(104, 90, COLOR_WHITE, 42, 5);
     gfx_present();
 }
 
@@ -60,6 +62,14 @@ int main(void)
     a = rnd16(); b = rnd16(); c = rnd_range(10);
     lynx_log("sdktest: rnd %u %u %u\n", a, b, c);
 
+    {
+        uint32_t m = math_mul16(300, 400), q = math_div32(100000UL, 7);
+        lynx_log("sdktest: math mul=%lu div=%lu rem=%u\n", m, q, math_rem);
+        m = math_mul16(0xFFFF, 0xFFFF);
+        lynx_log("sdktest: math big=%lu\n", m);
+        lynx_log("sdktest: box %u %u\n", (unsigned)box_hit(10, 10, 8, 8, 15, 15, 8, 8),
+                 (unsigned)box_hit(10, 10, 8, 8, 18, 10, 8, 8));
+    }
     snd_tone(0, 440, 100, 2);
     lynx_log("sdktest: sound on vol=%u\n", (unsigned)LYNX_AUD(0, LYNX_AUD_VOL));
 
