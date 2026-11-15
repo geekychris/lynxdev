@@ -47,6 +47,11 @@ Things that cost time, with what to do instead.
   puts it at `$A058-$C037`, over the end of the program and the C stack in
   the default map. Link with `CFG=$(LYNX_SDK)/cfg/lynx-coll.cfg`, or use
   bounding boxes (cheaper on a small number of objects anyway).
+- **A full-screen clear is about a third of a 50 Hz frame** (Suzy fills
+  8 KB). With mostly empty screens, erase instead: keep one SCB set per
+  screen buffer and, before updating it, draw the set that went into this
+  buffer two frames ago with every pen mapped to the background colour
+  (projects/rock_blaster: `erase_begin`/`erase_end` in `src/objs.s`).
 
 ## cc65
 
@@ -57,6 +62,12 @@ Things that cost time, with what to do instead.
   pointers to structs. Multiplying by a non-constant calls a library
   routine: use Suzy's maths or shifts.
 - `lynx_log` pulls in vsnprintf (~2 KB); `lynx_log_s` / `lynx_log_u` don't.
+  `lynx_log_u` still divides by 10 per digit (16-bit divides): a few
+  thousand cycles; log in a busy frame with strings or subtract loops.
+- A 32-bit multiply (`(int32_t)a * b`) costs ~1000 cycles and a 16-bit
+  divide/modulo several hundred: a handful in one frame shows. Measure with
+  the harness: `run_to_addr(fn)`, then to its return address, and compare
+  `status()["cycles"]` (projects/rock_blaster README, Speed).
 
 ## The harness
 
