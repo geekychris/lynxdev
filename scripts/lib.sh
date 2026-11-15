@@ -15,7 +15,7 @@ TOOLCHAIN_IMAGE="lynx-dev-toolchain:1"
 # Handy (libretro-handy fork, zlib licence), patched with the lynxh harness
 # (emulator/). These two lines belong to the emulator work (lynx-emu).
 HANDY_REPO="https://github.com/libretro/libretro-handy.git"
-HANDY_COMMIT="${HANDY_COMMIT:-bc55d46}"
+HANDY_COMMIT="${HANDY_COMMIT:-bc55d462f0b2d6b073ea93dc552ebd73cec60fd1}"
 
 THIRD_PARTY="$LYNX_ROOT/third_party"
 HANDY_DIR="$THIRD_PARTY/handy"
