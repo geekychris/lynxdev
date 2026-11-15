@@ -1,0 +1,12 @@
+/third_party/
+/build/
+/.venv/
+projects/*/build/
+sdk/template/build/
+__pycache__/
+*.pyc
+.DS_Store
+/dist/
+# copyrighted boot ROM: never commit
+lynxboot.img
+*.img
