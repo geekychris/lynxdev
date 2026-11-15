@@ -18,7 +18,7 @@ import subprocess
 from mcp.server.mcpserver import Image, MCPServer
 
 from .control import ProtocolError, SessionClient, list_sessions
-from .emu import repo_root
+from .emu import all_projects, project_dir, repo_root
 from .session import resolve_program
 
 ROOT = repo_root()
@@ -77,23 +77,23 @@ def _img(res) -> Image:
 
 @server.tool()
 def list_projects() -> str:
-    """List projects (projects/<name>) and their build output (.lnx)."""
+    """List projects (projects/<name> and the games in games/<name>) and their build output (.lnx)."""
     out = []
-    for d in sorted((ROOT / "projects").iterdir()):
+    for d in all_projects():
         mk = d / "Makefile"
         if mk.exists():
             built = sorted(str(p.relative_to(ROOT)) for ext in ("*.lnx",) for p in (d / "build").glob(ext))
-            out.append({"project": d.name, "built": built, "test": (d / "test.py").exists()})
+            out.append({"project": d.name, "dir": d.parent.name, "built": built, "test": (d / "test.py").exists()})
     return _j(out)
 
 
 @server.tool()
 def build(project: str, clean: bool = False) -> str:
-    """Compile projects/<project> with cc65 (in Docker) -> build/<name>.lnx + .map + .lbl.
+    """Compile projects/<project> or games/<project> with cc65 (in Docker) -> build/<name>.lnx + .map + .lbl.
     Returns compiler diagnostics on failure."""
-    proj = ROOT / "projects" / project
-    if not (proj / "Makefile").exists():
-        raise ValueError(f"no project at {proj}")
+    proj = project_dir(project)
+    if proj is None:
+        raise ValueError(f"no project {project!r} in projects/ or games/")
     cmd = [str(ROOT / "bin" / "lynx-make"), "-C", str(proj)]
     if clean:
         subprocess.run(cmd + ["clean"], capture_output=True, text=True)
@@ -105,15 +105,16 @@ def build(project: str, clean: bool = False) -> str:
 
 
 @server.tool()
-def new_project(name: str) -> str:
-    """Create projects/<name> from sdk/template."""
-    r = subprocess.run([str(ROOT / "lynx"), "new", name], capture_output=True, text=True)
+def new_project(name: str, game: bool = False) -> str:
+    """Create projects/<name> from sdk/template; game=True: games/<name> (the lynx_games repo)."""
+    r = subprocess.run([str(ROOT / "lynx"), "new"] + (["--game"] if game else []) + [name],
+                       capture_output=True, text=True)
     return (r.stdout + r.stderr).strip()
 
 
 @server.tool()
 def run_tests(project: str) -> str:
-    """Build and run a project's headless test (projects/<p>/test.py, else wait for LYNX:DONE)."""
+    """Build and run a project's headless test (<dir>/test.py, else wait for LYNX:DONE)."""
     r = subprocess.run([str(ROOT / "lynx"), "test", project], capture_output=True, text=True, timeout=1800)
     return ((r.stdout + r.stderr).strip()[-6000:] + f"\n(exit {r.returncode})")
 

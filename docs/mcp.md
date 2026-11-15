@@ -48,7 +48,7 @@ Addresses take numbers, `$hex`, `0x..`, symbols from the `.lbl`/`.map`
 |---|---|
 | `GET /` | the web UI: screen, run controls, pad, log, registers, disassembly, memory, Suzy/Mikey registers, palette, sprite chain, console |
 | `GET /api/health`, `GET /api/commands` | |
-| `GET /api/projects`, `POST /api/projects/{name}/build`, `POST /api/projects/{name}/test` | |
+| `GET /api/projects`, `POST /api/projects/{name}/build`, `POST /api/projects/{name}/test` | projects/ and games/ (`dir` says which) |
 | `GET/POST /api/sessions` | list / start `{"project", "window", "rotate"}` |
 | `DELETE /api/sessions/{pid}`, `POST /api/sessions/{pid}/select` | |
 | `GET/POST /api/cmd/{command}` | any session command (JSON body or `?k=v`), on the selected session |

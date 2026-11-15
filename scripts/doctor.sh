@@ -127,6 +127,12 @@ PY
   fi
 fi
 
+if ls "$LYNX_ROOT"/games/*/Makefile >/dev/null 2>&1; then
+  ok "games/ submodule checked out ($(ls -d "$LYNX_ROOT"/games/*/Makefile | wc -l | tr -d ' ') games)"
+else
+  warn "games/ submodule not checked out (the games): git submodule update --init"
+fi
+
 stale="$(ls "$LYNX_ROOT"/build/sessions/*.json 2>/dev/null | wc -l | tr -d ' ')"
 [ "$stale" = 0 ] || ok "$stale session(s) registered (./lynx sessions)"
 

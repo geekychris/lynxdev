@@ -3,11 +3,12 @@
 #
 #   ./lynx setup                 install everything (idempotent)
 #   ./lynx doctor                check the environment
-#   ./lynx new <name>            create projects/<name> from the template
-#   ./lynx build <project>       compile -> projects/<p>/build/<p>.lnx (+ .map .lbl .dbg)
+#   ./lynx new [--game] <name>   create projects/<name> (--game: games/<name>) from the template
+#   ./lynx build <project>       compile -> <dir>/build/<p>.lnx (+ .map .lbl .dbg); <dir> is
+#                                projects/<p> or games/<p> (games/ = the lynx_games submodule)
 #   ./lynx run <project|file>    window (free-running); ./lynx ctl and Claude can attach
 #   ./lynx serve <project|file> [--window] [--mode running]   headless session process
-#   ./lynx test <project>        projects/<p>/test.py if present, else wait for LYNX:DONE
+#   ./lynx test <project>        <dir>/test.py if present, else wait for LYNX:DONE
 #   ./lynx log <project> [--frames N] [--press KEYS@FRAME]   guest log (lynx_log) dump
 #   ./lynx shot <project> -o out.png [--until TEXT] [--press KEYS@FRAME] [--scale 2]
 #   ./lynx video <project> -o out.gif|.mp4 [--until TEXT] [--frames N]
@@ -15,7 +16,7 @@
 #   ./lynx ctl [--port N] <cmd> [key=value ...]             remote-control a session (ctl help)
 #   ./lynx sessions              running sessions
 #   ./lynx symbols <project> [regex]
-#   ./lynx sprite in.png|in.txt -o projects/<p>/src/x.c [--frames 8x8]  Suzy sprite data
+#   ./lynx sprite in.png|in.txt -o <dir>/src/x.c [--frames 8x8]  Suzy sprite data
 #   ./lynx devbench [--port 3690] [--open]                  web UI + REST + MCP over HTTP
 #   ./lynx clean <project>
 #   ./lynx selftest              build + test everything (do this before saying "done")
@@ -37,61 +38,96 @@ quiet_build() {
   "$ROOT/bin/lynx-make" -C "$1" >"$log" 2>&1 || { cat "$log"; die "build failed"; }
 }
 
+# A project's directory: projects/<name>, else games/<name> (the lynx_games
+# submodule); empty if neither has a Makefile.
+pdir() {
+  local d
+  for d in "$ROOT/projects/$1" "$ROOT/games/$1"; do
+    [ -f "$d/Makefile" ] && { echo "$d"; return 0; }
+  done
+  return 1
+}
+need_pdir() {
+  pdir "$1" && return 0
+  if [ ! -f "$ROOT/games/.git" ] && [ ! -d "$ROOT/games/.git" ]; then
+    die "no project '$1' in projects/; games/ (the lynx_games submodule) isn't checked out: git submodule update --init"
+  fi
+  die "no project '$1' in projects/ or games/"
+}
+
 cmd="${1:-help}"; shift || true
 case "$cmd" in
   setup)   exec "$ROOT/setup.sh" "$@" ;;
   doctor)  exec "$ROOT/scripts/doctor.sh" "$@" ;;
   build)   [ $# -ge 1 ] || die "usage: ./lynx build <project>"
-           p="$1"; shift; exec "$ROOT/bin/lynx-make" -C "$ROOT/projects/$p" "$@" ;;
+           d="$(need_pdir "$1")" || exit 1; shift; exec "$ROOT/bin/lynx-make" -C "$d" "$@" ;;
   clean)   [ $# -ge 1 ] || die "usage: ./lynx clean <project>"
-           exec "$ROOT/bin/lynx-make" -C "$ROOT/projects/$1" clean ;;
+           d="$(need_pdir "$1")" || exit 1; exec "$ROOT/bin/lynx-make" -C "$d" clean ;;
   devbench|ctl|sessions|sprite)
            need_lynxdev; exec "$LYNXDEV" "$cmd" "$@" ;;
   replay)  need_lynxdev; need_emu; exec "$LYNXDEV" replay "$@" ;;
   run|serve|log|shot|symbols|video|record)
            need_lynxdev; need_emu
-           if [ $# -ge 1 ] && [ -f "$ROOT/projects/$1/Makefile" ]; then
+           if [ $# -ge 1 ] && d="$(pdir "$1")"; then
              # rebuild projects so you always run what you just edited
-             quiet_build "$ROOT/projects/$1"
+             quiet_build "$d"
            fi
            exec "$LYNXDEV" "$cmd" "$@" ;;
   test)    need_lynxdev; need_emu; [ $# -ge 1 ] || die "usage: ./lynx test <project>"
            t="$1"; shift
-           if [ -f "$ROOT/projects/$t/Makefile" ]; then
-             quiet_build "$ROOT/projects/$t"
+           if d="$(pdir "$t")"; then
+             quiet_build "$d"
              # projects can ship a host-side test script with richer checks
-             if [ -f "$ROOT/projects/$t/test.py" ] && [ $# -eq 0 ]; then
-               exec "$PY" "$ROOT/projects/$t/test.py"
+             if [ -f "$d/test.py" ] && [ $# -eq 0 ]; then
+               exec "$PY" "$d/test.py"
              fi
+           elif [[ "$t" =~ ^[a-z][a-z0-9_]*$ ]]; then
+             need_pdir "$t"
            fi
            exec "$LYNXDEV" test "$t" "$@" ;;
-  new)     [ $# -ge 1 ] || die "usage: ./lynx new <name>"
+  new)     where=projects
+           if [ "${1:-}" = "--game" ]; then where=games; shift; fi
+           [ $# -ge 1 ] || die "usage: ./lynx new [--game] <name>"
            name="$1"
            [[ "$name" =~ ^[a-z][a-z0-9_]*$ ]] || die "name must be lowercase [a-z0-9_]"
-           dest="$ROOT/projects/$name"
+           if [ "$where" = games ] && [ ! -e "$ROOT/games/.git" ]; then
+             die "games/ (the lynx_games submodule) isn't checked out: git submodule update --init"
+           fi
+           ! pdir "$name" >/dev/null || die "a project '$name' already exists ($(pdir "$name"))"
+           dest="$ROOT/$where/$name"
            [ ! -e "$dest" ] || die "$dest already exists"
            cp -R "$ROOT/sdk/template" "$dest"
            rm -rf "$dest/build"
            for f in Makefile src/main.c test.py; do
              sed -i.bak -e "s/__NAME__/$name/g" "$dest/$f" && rm -f "$dest/$f.bak"
            done
-           ok "created projects/$name  –  ./lynx run $name" ;;
+           ok "created $where/$name  –  ./lynx run $name"
+           [ "$where" = games ] && echo "  it's in the lynx_games repo: commit and open the PR there (games/CLAUDE.md)"
+           true ;;
   selftest)
            need_lynxdev; need_emu
            mkdir -p "$ROOT/build"
            fails=0
            # tests must write only to (git-ignored) build directories: remember the
            # working tree now (status + content hash of every changed/untracked file)
-           tree_state() {
-             git -C "$ROOT" status --porcelain=v1 --untracked-files=all | while IFS= read -r l; do
-               f="${l:3}"; f="${f#\"}"; f="${f%\"}"
-               printf '%s %s\n' "$l" "$(git -C "$ROOT" hash-object "$f" 2>/dev/null || echo gone)"
+           tree_state() {    # this repo, then the games submodule (if checked out)
+             local r
+             for r in "$ROOT" "$ROOT/games"; do
+               [ -e "$r/.git" ] || continue
+               git -C "$r" status --porcelain=v1 --untracked-files=all --ignore-submodules=dirty | while IFS= read -r l; do
+                 f="${l:3}"; f="${f#\"}"; f="${f%\"}"
+                 printf '%s %s\n' "${r#"$ROOT"}:$l" "$(git -C "$r" hash-object "$f" 2>/dev/null || echo gone)"
+               done
              done | sort
            }
            tree_before="$(tree_state)"
-           for d in "$ROOT"/projects/*/; do
+           games=0
+           if ls "$ROOT"/games/*/Makefile >/dev/null 2>&1; then games=1
+           else warn "games/ (the lynx_games submodule) isn't checked out: the games are not tested (git submodule update --init)"; fi
+           for d in "$ROOT"/projects/*/ "$ROOT"/games/*/; do
              p="$(basename "$d")"; [ -f "$d/Makefile" ] || continue
-             step "$p"
+             [ "${d#"$ROOT"/games/}" != "$d" ] && p_kind="game " || p_kind=""
+             step "$p_kind$p"
              if ! "$ROOT/bin/lynx-make" -C "$d" >"$ROOT/build/selftest-$p.log" 2>&1; then
                tail -20 "$ROOT/build/selftest-$p.log"; warn "build failed (build/selftest-$p.log)"; fails=$((fails+1)); continue
              fi
@@ -122,7 +158,9 @@ case "$cmd" in
            else
              ok "no tracked or new files changed (tests wrote only to build/)"
            fi
-           [ "$fails" -eq 0 ] && ok "all pass" || die "$fails check(s) failed" ;;
+           if [ "$games" = 1 ]; then gmsg="games/ included"
+           else gmsg="games/ NOT checked out: games untested"; fi
+           [ "$fails" -eq 0 ] && ok "all pass ($gmsg)" || die "$fails check(s) failed ($gmsg)" ;;
   lynxdev) need_lynxdev; exec "$LYNXDEV" "$@" ;;
   help|-h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//' ;;
   *)       die "unknown command '$cmd' (./lynx help)" ;;

@@ -3,17 +3,21 @@
 ## 1. Set up
 
 ```sh
-./setup.sh            # toolchain image, emulator, Python env, then ./lynx selftest
+git clone --recurse-submodules https://github.com/geekychris/lynxdev && cd lynxdev
+./setup.sh            # games/ submodule, toolchain image, emulator, Python env, then ./lynx selftest
 ./lynx doctor         # anything missing, with the command that fixes it
 ```
 
-`./setup.sh --quick` skips the final selftest. Everything is idempotent: run
+The games are in their own repo (geekychris/lynx_games), checked out as the
+`games/` submodule; setup.sh fetches it (`git submodule update --init` by
+hand). Without it everything else works and selftest says the games weren't
+tested. `./setup.sh --quick` skips the final selftest. Everything is idempotent: run
 it again after pulling.
 
 ## 2. Your first project
 
 ```sh
-./lynx new mygame     # projects/mygame from sdk/template
+./lynx new mygame     # projects/mygame from sdk/template (--game: games/mygame, the lynx_games repo)
 ./lynx run mygame     # builds, then opens a window (arrows move the box, Z = A)
 ./lynx test mygame    # headless: runs projects/mygame/test.py
 ```

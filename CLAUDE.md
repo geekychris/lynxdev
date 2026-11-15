@@ -9,8 +9,9 @@ scriptable deterministically.
 ## Commands
 
 ```sh
-./lynx build <project>      # -> projects/<p>/build/<p>.lnx + .map + .lbl (symbols) + .dbg
-./lynx test <project>       # projects/<p>/test.py if present, else waits for LYNX:DONE / LYNX:FAIL
+./lynx build <project>      # -> <dir>/build/<p>.lnx + .map + .lbl (symbols) + .dbg
+./lynx test <project>       # <dir>/test.py if present, else waits for LYNX:DONE / LYNX:FAIL
+                            # <dir> = projects/<p> (platform: hello, sdktest) or games/<p> (the games)
 ./lynx log <project> --frames 600 [--press A@400]
 ./lynx shot <project> -o out.png --until "ready" [--press PAUSE@100] [--scale 3]
 ./lynx video <project> -o out.gif|.mp4 --until "ready" --frames 150 [--press A@200 --hold LEFT@220 --release ALL@260]
@@ -19,9 +20,11 @@ scriptable deterministically.
 ./lynx run <project>        # window for the human (free-running; registered session)
 ./lynx serve <project>      # headless paused session (prints ports)
 ./lynx ctl <cmd> key=value  # remote-control the newest session (./lynx ctl help)
-./lynx sprite art/x.txt -o projects/<p>/src/x.c   # PNG / text art -> Suzy sprite data
-./lynx new <name>           # from sdk/template
-./lynx selftest             # build + test everything (do this before saying "done");
+./lynx sprite art/x.txt -o <dir>/src/x.c   # PNG / text art -> Suzy sprite data
+./lynx new <name>           # projects/<name> from sdk/template
+./lynx new --game <name>    # games/<name> (a game: lives in the lynx_games repo)
+./lynx selftest             # build + test everything (do this before saying "done"), games/ too
+                            # when the submodule is checked out (it says so when it isn't);
                             # fails if a test changed a tracked file (write output to build/)
 ./lynx doctor               # environment problems
 ./lynx devbench             # web UI + REST (/api) + MCP over HTTP (/mcp) on :3690
@@ -29,6 +32,36 @@ scriptable deterministically.
 
 Builds run in Docker (image `lynx-dev-toolchain:N`, cc65 pinned in
 scripts/lib.sh); `LYNX_NATIVE=1` builds with a cc65 on PATH instead.
+
+## Two repos: the platform and the games
+
+- **lynxdev** (this repo): SDK, toolchain, emulator, `./lynx`, harness, MCP, DevBench,
+  docs, and the platform's own test programs in `projects/` (hello, sdktest, template).
+- **lynx_games** (github.com/geekychris/lynx_games, private): every game, one directory
+  each, checked out here as the **`games/` submodule** (`git submodule update --init`;
+  setup.sh does it). Same layout as amiga_mcp + its `examples/` submodule (amiga_games).
+
+All tooling finds a project by name in `projects/` then `games/`: `./lynx build|test|run|
+shot|video|log <name>`, devbench `/api/projects`, MCP `build`/`emu_boot`.
+
+## Porting into lynx_games
+
+- **Where a game lives**: `games/<game>/` = `<game>/` at the root of lynx_games.
+  `./lynx new --game <game>` makes one from the template. Makefile: `NAME := <game>`,
+  `LYNX_SDK ?= ../../sdk`, `include $(LYNX_SDK)/project.mk` (games/<game> is two levels
+  below the lynxdev root, like projects/<p>). test.py / tools find the lynxdev root by
+  walking up to the directory with `lynx` and `sdk/` (games/rock_blaster/test.py
+  `_lynxdev_root()`). Pictures in `<game>/images/`; outputs in `<game>/build/`.
+- **Test**: `./lynx build <game>`, `./lynx test <game>`, `./lynx shot <game> -o
+  games/<game>/images/play.png`, MCP `build("<game>")` + `emu_boot("<game>")`; then
+  `./lynx selftest` (runs every game).
+- **PRs go to geekychris/lynx_games**: branch inside `games/`, commit, push, PR there,
+  merge when the game's test and `./lynx selftest` pass. **Then bump the submodule
+  pointer in lynxdev** (`cd games && git checkout main && git pull && cd .. && git add
+  games`), add the game's row to README's Games table (thumbnail in
+  docs/images/games/), PR to lynxdev.
+- A game in a worktree of lynxdev: worktrees don't share submodule checkouts; run
+  `git submodule update --init` in the worktree first.
 
 ## MCP tools (server "lynx", .mcp.json)
 

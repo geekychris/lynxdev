@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-shot setup for the Atari Lynx dev environment. Safe to re-run.
 #
-#   ./setup.sh            everything, then build + test all projects
+#   ./setup.sh            everything (incl. the games/ submodule), then build + test all projects
 #   ./setup.sh --quick    skip the final build/test pass
 #
 # Requires: git, make, a C compiler, SDL2 (for the window; headless works
@@ -35,6 +35,14 @@ fi
 if ! have sdl2-config; then
   if [ "$(host_os)" = darwin ]; then warn "SDL2 missing: no emulator window (brew install sdl2), headless still works"
   else warn "SDL2 missing: no emulator window (sudo apt install libsdl2-dev), headless still works"; fi
+fi
+
+step "games (git submodule games/ = geekychris/lynx_games)"
+if [ -d "$LYNX_ROOT/.git" ] || [ -f "$LYNX_ROOT/.git" ]; then
+  if git -C "$LYNX_ROOT" submodule update --init --recursive; then ok "games/ checked out"
+  else warn "could not fetch the games submodule (access to github.com/geekychris/lynx_games?): the platform works without it"; fi
+else
+  warn "not a git checkout: no games/ (clone with --recurse-submodules)"
 fi
 
 have docker && "$LYNX_ROOT/scripts/build-toolchain-image.sh"

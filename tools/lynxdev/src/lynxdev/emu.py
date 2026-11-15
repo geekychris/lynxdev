@@ -56,6 +56,32 @@ def repo_root() -> Path:
     return here.parents[4]
 
 
+# Where projects live: the platform's own (projects/: hello, sdktest) and the
+# games (games/: the geekychris/lynx_games submodule). A name is looked up in
+# that order.
+PROJECT_DIRS = ("projects", "games")
+
+
+def project_dir(name: str) -> Path | None:
+    """projects/<name> or games/<name> (the one with a Makefile), else None."""
+    for d in PROJECT_DIRS:
+        p = repo_root() / d / name
+        if (p / "Makefile").is_file():
+            return p
+    return None
+
+
+def all_projects() -> list[Path]:
+    """Every project directory (projects/*, then games/* if the submodule is
+    checked out), sorted by name within each."""
+    out = []
+    for d in PROJECT_DIRS:
+        base = repo_root() / d
+        if base.is_dir():
+            out += sorted(p for p in base.iterdir() if (p / "Makefile").is_file())
+    return out
+
+
 def emulator_binary(window: bool = False) -> Path:
     env = os.environ.get("LYNX_EMULATOR_WINDOW" if window else "LYNX_EMULATOR")
     if env:
