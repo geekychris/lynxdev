@@ -52,8 +52,8 @@ play-through test and a screenshot.
 
 | | Game | What it is |
 |---|---|---|
+| <img src="docs/images/rock_blaster.png" width="160" alt="Rock Blaster"> | [Rock Blaster](projects/rock_blaster) | vector rock shooter: the original's ship, rocks and rules; Suzy sprites (pre-rotated + flipped ship, scaled title logo), the original's tune on Mikey, 50 fps |
 | <img src="docs/images/frank_the_frog.png" width="160" alt="Frank the Frog"> | [Frank the Frog](projects/frank_the_frog) | hop Frank over five lanes of traffic and a river of logs and lily pads into the four ponds; Suzy-scaled title, Mikey sound, 50 fps; a bot test fills all four ponds |
-| | *(coming: Rock Blaster)* | |
 
 ## Projects
 
