@@ -5,6 +5,7 @@ Needs projects/hello built (selftest builds every project first).
 """
 import asyncio
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -74,8 +75,8 @@ def test_session():
         check("disasm by symbol", "_main" in r["listing"].splitlines()[0], r["listing"])
         r = c.call("read_mem", addr="frame_count", length=2)
         check("read_mem by symbol", len(r["hex"]) == 4, str(r))
-        c.call("write_mem", addr="rnd_state", hex="3412")
-        check("write_mem", c.call("read_mem", addr="rnd_state", length=2)["hex"] == "3412")
+        c.call("write_mem", addr="input_new", hex="3412")
+        check("write_mem", c.call("read_mem", addr="input_new", length=2)["hex"] == "3412")
         c.call("watch", addr="frame_count", length=1, kind="w")
         r = c.call("continue", max_frames=5)
         check("watchpoint stops on the write (VBL interrupt)", r["stopped"], str(r)[:300])
@@ -135,7 +136,8 @@ def test_mcp():
     from mcp.client.stdio import StdioServerParameters, stdio_client
 
     async def run():
-        p = StdioServerParameters(command=str(ROOT / ".venv" / "bin" / "lynxdev-mcp"), args=[])
+        p = StdioServerParameters(command=str(ROOT / ".venv" / "bin" / "lynxdev-mcp"), args=[],
+                                  env=dict(os.environ))    # LYNX_EMULATOR etc. reach the server
         async with stdio_client(p) as (r, w):
             async with ClientSession(r, w) as s:
                 await s.initialize()

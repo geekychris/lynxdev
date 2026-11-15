@@ -477,7 +477,7 @@ class Emulator:
                "since_load": int(r.get("frame", 0)) - self.load_frame, "cycles": int(r.get("cycles", 0)),
                "midframe": r.get("midframe") == "1"}
         if "line" in r:
-            out["line"], out["xpos"] = int(r["line"]), int(r["xpos"])
+            out["line"] = int(r["line"])
         if "id" in r:
             i = int(r["id"])
             out["break"] = (self._bps.get(i) or self._watches.get(i) or {}).get("desc")
@@ -490,7 +490,7 @@ class Emulator:
         res["since_load"] = res["frame"] - self.load_frame
         res["why"] = self._WHY.get(res["reason"], res["reason"])
         if "line" in r:
-            res["line"], res["xpos"] = int(r["line"]), int(r["xpos"])
+            res["line"] = int(r["line"])
         for k in ("id", "cond", "addr", "access", "insn_pc", "value", "old", "match", "signal", "opcode"):
             if k in r:
                 res[k] = r[k]
@@ -507,7 +507,7 @@ class Emulator:
                        "S": int(r.get("s", "0"), 16), "P": int(r.get("p", "0"), 16), "PC": res["pc"]}
         res["symbol"] = self.symbols.name_of(res["pc"])
         self.last_stop = {k: res.get(k) for k in ("why", "reason", "pc", "symbol", "break", "frame",
-                                                   "since_load", "cycles", "line", "xpos", "midframe")}
+                                                   "since_load", "cycles", "line", "midframe")}
         if res["why"] in ("breakpoint", "watchpoint", "cpu_jam"):
             self.paused = True        # a stop holds a free-running window too
         return res
@@ -760,6 +760,8 @@ class Emulator:
     def palette_raw(self) -> list[int]:
         """The 16 palette entries as the registers hold them, 12-bit 0xGBR."""
         raw = self._kv("palette").get("raw", "")
+        if "," in raw:
+            return [int(x, 16) for x in raw.split(",") if x]
         return [int(raw[i:i + 3], 16) for i in range(0, len(raw), 3)] if raw else []
 
     def frame_buffer(self) -> tuple[bytes, dict]:
@@ -1073,15 +1075,17 @@ class Emulator:
                 "vectors": not (m & 8)}
 
     def scb_chain(self, start=None, limit: int = 64) -> list[dict]:
-        """Walk a Suzy sprite chain (SCBs) from `start` (default: the SCBNEXT
-        register Suzy last started from) and decode each control block."""
+        """Walk a Suzy sprite chain (SCBs) from `start` (default: the head of
+        the chain Suzy was last started on, `suzy.last_chain` in hw, else the
+        last SCB it processed, `suzy.scbadr`) and decode each control block."""
         if start is None:
             try:
-                start = self.hw().get("suzy", {}).get("scbnext")
+                sz = self.hw().get("suzy", {})
             except EmulatorError:
-                start = None
-            if start is None:
-                raise EmulatorError("no start address (the emulator's hw has no suzy.scbnext)")
+                sz = {}
+            start = sz.get("last_chain") or sz.get("scbadr") or sz.get("scbnext")
+            if not start:
+                raise EmulatorError("no start address: give one (Suzy has not drawn yet)")
         a = self.addr(start) if isinstance(start, str) else int(start)
         out, seen = [], set()
         while a and (a >> 8) and a not in seen and len(out) < limit:
@@ -1283,7 +1287,13 @@ class Emulator:
         self._cmd(f"loadstate path={_q(p)}")
         side = Path(str(p) + ".lynxh")
         if side.exists():
-            info = dict(ln.split("=", 1) for ln in side.read_text().splitlines() if "=" in ln)
+            # text lines key=value (the emulator may append binary data after them)
+            info = {}
+            for ln in side.read_bytes().decode("latin-1").splitlines():
+                k, eq, v = ln.partition("=")
+                if not eq or not re.fullmatch(r"[a-z_]+", k):
+                    break
+                info[k] = v
             if info.get("loaded"):
                 self.program = info["loaded"]
                 self.symbols = Symbols.load(self.program)
