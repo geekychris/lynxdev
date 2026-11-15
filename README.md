@@ -11,6 +11,8 @@ cartridges with a high-level emulation of it.
 <p>
 <img src="docs/images/games/rock_blaster.png" width="240" alt="Rock Blaster">
 <img src="docs/images/games/frank_the_frog.png" width="240" alt="Frank the Frog">
+<img src="docs/images/games/bullion_dash.png" width="240" alt="Bullion Dash">
+<img src="docs/images/games/jump_quest.png" width="240" alt="Jump Quest">
 <img src="docs/images/sdktest.png" width="240" alt="the SDK test screen">
 </p>
 
@@ -115,6 +117,10 @@ Lynx's 160x102 screen with Suzy sprites and Mikey sound. Each has a README
 |---|---|---|
 | <img src="docs/images/games/rock_blaster.png" width="160" alt="Rock Blaster"> | [Rock Blaster](https://github.com/geekychris/lynx_games/tree/main/rock_blaster) | vector rock shooter: the original's ship, rocks and rules; Suzy sprites (pre-rotated + flipped ship, scaled title logo), the original's tune on Mikey, 50 fps |
 | <img src="docs/images/games/frank_the_frog.png" width="160" alt="Frank the Frog"> | [Frank the Frog](https://github.com/geekychris/lynx_games/tree/main/frank_the_frog) | hop Frank over five lanes of traffic and a river of logs and lily pads into the four ponds; Suzy-scaled title, Mikey sound, 50 fps; a bot test fills all four ponds |
+| <img src="docs/images/games/nova_defense.png" width="160" alt="Nova Defense"> | [Nova Defense](https://github.com/geekychris/lynx_games/tree/main/nova_defense) | defend the base against a marching swarm of 48 aliens, a comet and wearing shields; the original's art at half size, its march and tune on Mikey, 50 fps; a bot test clears two waves and shoots a comet |
+| <img src="docs/images/games/bullion_dash.png" width="160" alt="Bullion Dash"> | [Bullion Dash](https://github.com/geekychris/lynx_games/tree/main/bullion_dash) | dig traps, take the gold, climb out: all 150 repaired levels on one 160x102 screen, the original's guards and path search, its four-channel tune on Mikey; bot tests win levels by route search |
+| <img src="docs/images/games/jump_quest.png" width="160" alt="Jump Quest"> | [Jump Quest](https://github.com/geekychris/lynx_games/tree/main/jump_quest) | RJ and Dale's side-scrolling platformer: three levels, four enemy types, one or two players; pixel-smooth scrolling with Suzy, 46-50 fps; an autoplay test clears all three levels |
+| <img src="docs/images/games/boing_twist.png" width="160" alt="Boing Twist"> | [Boing Twist](https://github.com/geekychris/lynx_games/tree/main/boing_twist) | twist the bands of a Boing ball until the picture is whole again; best moves and time per picture as in the original, colour-cycled title ball |
 
 **The arcade** (`./lynx arcade`, or `scripts/arcade.sh`) lists every game it
 finds in `games/` with a one-line description, builds the one you pick and
