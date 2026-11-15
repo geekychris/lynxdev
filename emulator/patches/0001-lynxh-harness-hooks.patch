@@ -1,0 +1,72 @@
+diff --git a/lynx/c65c02.h b/lynx/c65c02.h
+index 0fdea74..f9683c7 100644
+--- a/lynx/c65c02.h
++++ b/lynx/c65c02.h
+@@ -110,6 +110,9 @@ typedef struct
+ // The CPU emulation macros
+ //
+ #include "c6502mak.h"
++#ifdef LYNXH
++#include "lynxh.h"
++#endif
+ //
+ // The CPU emulation macros
+ //
+@@ -248,6 +251,11 @@ class C65C02
+          //
+          if(gSystemCPUSleep) return;
+ 
++#ifdef LYNXH
++         // lynxh harness: breakpoints, steps, frame boundaries (lynxh.h).
++         // A non-zero return stops before this instruction (PC unchanged).
++         if(gLynxhCpuCheck && LYNXH_CpuHook(mPC)) return;
++#endif
+          // Fetch opcode
+          mOpcode=CPU_PEEK(mPC);
+          mPC++;
+diff --git a/lynx/susie.cpp b/lynx/susie.cpp
+index b868e2a..26abce7 100644
+--- a/lynx/susie.cpp
++++ b/lynx/susie.cpp
+@@ -51,6 +51,9 @@
+ #include <string.h>
+ #include "system.h"
+ #include "susie.h"
++#ifdef LYNXH
++#include "lynxh.h"
++#endif
+ #include "lynxdef.h"
+ 
+ //
+@@ -427,6 +430,9 @@ ULONG CSusie::PaintSprites(void)
+    }
+ 
+    cycles_used=0;
++#ifdef LYNXH
++   LYNXH_SpriteChain(mSCBNEXT.Word);   // the head of the chain, for the SCB inspector
++#endif
+ 
+    do {
+       everonscreen=0;// everon has to be reset for every sprite, thus line was moved inside this loop
+@@ -1648,6 +1654,9 @@ void CSusie::Poke(ULONG addr,UBYTE data)
+          // Errors on illegal location accesses
+ 
+       default:
++#ifdef LYNXH
++         LYNXH_SuzyPoke(addr,data);   // $FCF0 log char, $FCF1 signal
++#endif
+          break;
+    }
+ }
+@@ -1923,5 +1932,11 @@ UBYTE CSusie::Peek(ULONG addr)
+          break;
+    }
+ 
++#ifdef LYNXH
++   {
++      int v=LYNXH_SuzyPeek(addr);   // $FCF0 reads 'L', $FCF1 'Y' in the harness
++      if(v>=0) return (UBYTE)v;
++   }
++#endif
+    return 0xff;
+ }
