@@ -37,6 +37,11 @@ void gfx_present(void);
 void gfx_color(uint8_t idx, uint8_t r, uint8_t g, uint8_t b);
 /* Load 16 colours as 12-bit 0xRGB values (0x0F00 = red). */
 void __fastcall__ gfx_palette(const uint16_t *rgb16);
+/* Load 16 colours in the registers' order, 12-bit 0xGBR (what `./lynx sprite
+   --palette image` writes as <name>_palette). */
+void __fastcall__ gfx_palette_gbr(const uint16_t *gbr16);
+/* Back to the default palette (the one gfx_init sets; COLOR_* names). */
+void gfx_palette_default(void);
 /* Shapes in the back buffer. */
 void gfx_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color);
 void gfx_frame(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color);

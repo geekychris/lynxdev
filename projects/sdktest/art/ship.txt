@@ -1,0 +1,9 @@
+# 8x8 ship: pens 9 (yellow), F (white), 2 (red)
+...FF...
+...FF...
+..F99F..
+..F99F..
+.F9999F.
+F999999F
+F92..29F
+.2....2.

@@ -56,6 +56,22 @@ void __fastcall__ gfx_palette(const uint16_t *rgb16)
     }
 }
 
+void __fastcall__ gfx_palette_gbr(const uint16_t *gbr16)
+{
+    uint8_t i;
+    uint16_t c;
+    for (i = 0; i < 16; ++i) {
+        c = gbr16[i];
+        LYNX_GREEN(i) = (uint8_t)(c >> 8) & 15;
+        LYNX_BLUERED(i) = (uint8_t)c;
+    }
+}
+
+void gfx_palette_default(void)
+{
+    tgi_setpalette(tgi_getdefpalette());
+}
+
 void gfx_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color)
 {
     if (!w || !h) return;

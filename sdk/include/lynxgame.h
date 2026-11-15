@@ -5,5 +5,7 @@
 #include "lynxgfx.h"
 #include "lynxinput.h"
 #include "lynxrnd.h"
+#include "lynxspr.h"
+#include "lynxsnd.h"
 #include "lynxlog.h"
 #endif

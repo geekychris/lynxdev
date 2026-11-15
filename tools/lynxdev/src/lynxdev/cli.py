@@ -10,6 +10,7 @@
   lynxdev ctl [--port N] <cmd> [key=value ...]          remote-control a session (ctl help)
   lynxdev sessions                                      running sessions
   lynxdev symbols <program> [pattern]
+  lynxdev sprite <in.png|in.txt> -o out.c [--name N] [--bpp B] [--frames WxH] [--palette default|image|list]
   lynxdev devbench [--port N] [--open]                  web UI + REST + MCP over HTTP (:3690)
 
 <program> is a project name (newest build output) or a .lnx/.lys file.
@@ -277,6 +278,17 @@ def cmd_symbols(a) -> int:
     return 0
 
 
+def cmd_sprite(a) -> int:
+    from .sprite import SpriteError, convert
+    try:
+        r = convert(a.input, a.output, a.name, a.bpp, a.palette, a.frames)
+    except (SpriteError, OSError) as ex:
+        print(f"sprite: {ex}", file=sys.stderr)
+        return 1
+    print(f"{r['c']} + {r['h']}: {r['w']}x{r['h_px']}, {r['bpp']} bpp, {r['frames']} frame(s), {r['bytes']} bytes")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="lynxdev", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -357,6 +369,14 @@ def main(argv=None) -> int:
     p.add_argument("program")
     p.add_argument("pattern", nargs="?")
 
+    p = sub.add_parser("sprite", help="PNG or text art -> Suzy sprite data (C source + header)")
+    p.add_argument("input")
+    p.add_argument("-o", "--output", required=True, help="the .c to write (the .h goes beside it)")
+    p.add_argument("--name")
+    p.add_argument("--bpp", type=int, choices=[1, 2, 3, 4])
+    p.add_argument("--palette", default="default", help="default | image | 16 comma-separated 0xGBR values")
+    p.add_argument("--frames", help="slice a PNG sheet into WxH frames")
+
     p = sub.add_parser("devbench")
     p.add_argument("--port", type=int, default=3690)
     p.add_argument("--host", default="127.0.0.1")
@@ -380,7 +400,7 @@ def main(argv=None) -> int:
         return 0
     return {"test": cmd_test, "log": cmd_log, "shot": cmd_shot, "ctl": cmd_ctl,
             "video": cmd_video, "replay": cmd_replay, "record": cmd_record,
-            "sessions": cmd_sessions, "symbols": cmd_symbols}[a.cmd](a)
+            "sessions": cmd_sessions, "symbols": cmd_symbols, "sprite": cmd_sprite}[a.cmd](a)
 
 
 if __name__ == "__main__":
