@@ -8,7 +8,7 @@
 #include "ship.h"
 #include "block.h"
 
-static SCB_REHV_PAL ship, ship2, ship3, big, c1, c2, c3;
+static SCB_REHV_PAL ship, ship2, ship3, big, c1, c2, c3, bar;
 
 static void draw(void)
 {
@@ -56,6 +56,8 @@ int main(void)
     spr_pos(&c3, 30, 60);
     spr_link(&c1, &c2);
     spr_link(&c2, &c3);
+    spr_box(&bar, 60, 70, 37, 3, COLOR_PEACH);   /* 37x3 exactly */
+    spr_link(&c3, &bar);
     gfx_color(14, 15, 0, 15);            /* pen 14 -> magenta */
 
     rnd_seed(1);
@@ -70,6 +72,11 @@ int main(void)
         lynx_log("sdktest: box %u %u\n", (unsigned)box_hit(10, 10, 8, 8, 15, 15, 8, 8),
                  (unsigned)box_hit(10, 10, 8, 8, 18, 10, 8, 8));
     }
+    lynx_log("sdktest: period 440=%x 16=%x 20000=%x\n", snd_period(440), snd_period(16), snd_period(20000));
+    lynx_log("sdktest: SND_PERIOD 440=%x 16=%x 20000=%x\n", SND_PERIOD(440), SND_PERIOD(16), SND_PERIOD(20000));
+    lynx_log_s("sdktest: log_u ");
+    lynx_log_u(0); lynx_log_c(' '); lynx_log_u(7); lynx_log_c(' '); lynx_log_u(10); lynx_log_c(' ');
+    lynx_log_u(65535); lynx_log_c(' '); lynx_log_u(1009); lynx_log_c('\n');
     snd_tone(0, 440, 100, 2);
     lynx_log("sdktest: sound on vol=%u\n", (unsigned)LYNX_AUD(0, LYNX_AUD_VOL));
 
@@ -89,6 +96,11 @@ int main(void)
             lynx_log("sdktest: noise\n");
         }
         if (input_new & IN_OPT1) lynx_log("sdktest: option1\n");
+        if (input_new & IN_OPT2) {
+            snd_tone(1, 2000, 60, 0);
+            snd_sweep(1, -100);
+            lynx_log("sdktest: sweep\n");
+        }
         if (input_new & IN_PAUSE) lynx_log("sdktest: pause\n");
         frame_wait();
     }

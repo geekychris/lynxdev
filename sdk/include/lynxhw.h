@@ -12,7 +12,7 @@
 #include <lynx.h>
 
 /* major * 10000 + minor * 100 + patch (sdk/README.md: versioning rules) */
-#define LYNX_SDK_VERSION 10100
+#define LYNX_SDK_VERSION 10200
 
 #define LYNX_SCREEN_W   160
 #define LYNX_SCREEN_H   102

@@ -19,6 +19,7 @@
 #define SPRSYS_R R(0xFC92)
 
 uint16_t math_rem;
+static union { uint32_t l; uint8_t b[4]; } res;   /* byte access: no 32-bit shifts */
 
 uint32_t __fastcall__ math_mul16(uint16_t a, uint16_t b)
 {
@@ -26,19 +27,29 @@ uint32_t __fastcall__ math_mul16(uint16_t a, uint16_t b)
     MATHC = (uint8_t)(b >> 8);
     MATHB = (uint8_t)a;
     MATHA = (uint8_t)(a >> 8);              /* starts */
+    /* (the result is read as bytes below: cc65's 32-bit shifts cost ~1k cycles) */
     while (SPRSYS_R & 0x80) ;
-    return (uint32_t)MATHH | ((uint32_t)MATHG << 8) | ((uint32_t)MATHF << 16) | ((uint32_t)MATHE << 24);
+    res.b[0] = MATHH;
+    res.b[1] = MATHG;
+    res.b[2] = MATHF;
+    res.b[3] = MATHE;
+    return res.l;
 }
 
 uint32_t __fastcall__ math_div32(uint32_t num, uint16_t den)
 {
+    res.l = num;
     MATHP = (uint8_t)den;
     MATHN = (uint8_t)(den >> 8);
-    MATHH = (uint8_t)num;
-    MATHG = (uint8_t)(num >> 8);
-    MATHF = (uint8_t)(num >> 16);
-    MATHE = (uint8_t)(num >> 24);           /* starts */
+    MATHH = res.b[0];
+    MATHG = res.b[1];
+    MATHF = res.b[2];
+    MATHE = res.b[3];                       /* starts */
     while (SPRSYS_R & 0x80) ;
     math_rem = (uint16_t)MATHM | ((uint16_t)MATHL << 8);
-    return (uint32_t)MATHD | ((uint32_t)MATHC << 8) | ((uint32_t)MATHB << 16) | ((uint32_t)MATHA << 24);
+    res.b[0] = MATHD;
+    res.b[1] = MATHC;
+    res.b[2] = MATHB;
+    res.b[3] = MATHA;
+    return res.l;
 }
