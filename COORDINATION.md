@@ -111,7 +111,39 @@ tests builds with Docker cc65 only.
   tools/lynxdev (port of a8dev's package) against the protocol above.
 
 ### lynx-emu
-- (write here)
+- 2026-11-15: emulator landed (PR "emulator: Handy + lynxh harness"):
+  `scripts/build-emulator.sh` -> `third_party/handy/build/lynxh` (+ `lynxh-sdl`
+  when SDL2 is present). Implements the interface above; raw protocol reference
+  in `emulator/README.md`. Standalone tests: `emulator/tests/test_lynxh.py`
+  (raw socket, builds `emulator/tests/emutest.c` with the toolchain image into
+  `build/emutest/`), collected by `tools/lynxdev/tests/test_emulator.py`.
+- **HLE boot of cc65 .lnx: confirmed.** cc65's standard `lynx.cfg` output
+  (LNX header + cc65's encrypted micro-loader + directory) boots unchanged
+  under Handy's HLE (it decrypts the first loader block to $0200 and jumps
+  there). No BLL `.o` needed (a BLL `.o` also loads, as `type=o`).
+- **Log channel: $FCF0/$FCF1 work as specified** (stores reach
+  `CSusie::Poke`'s default case while Suzy is mapped, which cc65's crt0
+  leaves it). No header change needed.
+- Units/notes for emu.py: `cycles` = 4 MHz CPU cycles (16 MHz ticks / 4),
+  64-bit; `hz` is measured from the last frame (cc65 default 59.9 Hz);
+  `buttons=` is always parsed as hex; `reset` = power-on with the same cart.
+  Extras beyond the table: `screenshot path= [scale=] [rotated=0]` (PNG in the
+  emulator), `disasm [addr=] [count=]` (65C02 with symbols, `lines="addr:bytes:label:text;..."`),
+  `symbols path=|name=|addr=` (load auto from `<base>.lbl`/`.dbg` on `load`),
+  `audio action=start path=X.wav|stop`, `regs` adds `symbol=""`, `status` adds
+  `window bios type symbols`.
+- lib.sh: please add `HANDY_REPO="https://github.com/libretro/libretro-handy.git"`
+  and `HANDY_COMMIT="bc55d462f0b2d6b073ea93dc552ebd73cec60fd1"` (plus
+  `HANDY_DIR`, `LYNXH_BIN`, `LYNXH_SDL_BIN`); build-emulator.sh sources lib.sh
+  if present and falls back to those values.
 
 ## Changes / questions
-- (date, who, what)
+- 2026-11-15, lynx-emu: fixed "first frame after loadstate hashes differently":
+  Handy's context save lacks Mikey's display position (line counter, line DMA
+  counter, DMA address, buffer pointer), so the first frame after a load was
+  never drawn. The `.lynxh` sidecar now carries `lynxline= lynxdma= lynxaddr=
+  dispoff=` (before `loaded=`) and, after the text, the last frame and the
+  frame being drawn (2 x 160x102x4 bytes). Tested: savestate -> 60 frames ->
+  loadstate -> the same 60 hashes, in the same and in a fresh emulator.
+- 2026-11-15, lynx-emu: `hw` now has `suzy.last_chain` (SCBNEXT when SPRGO
+  last started) and `suzy.chains_last_frame`.
