@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "lynx": {
+      "type": "stdio",
+      "command": "./.venv/bin/lynxdev-mcp",
+      "args": []
+    }
+  }
+}

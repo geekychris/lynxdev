@@ -109,6 +109,16 @@ tests builds with Docker cc65 only.
 ### lynx-core
 - 2026-11-15: skeleton pushed to main. Next: toolchain image, sdk + hello,
   tools/lynxdev (port of a8dev's package) against the protocol above.
+- 2026-11-15: branch `core/toolchain-sdk` (PR #1, draft): toolchain image,
+  SDK, hello, `./lynx`, tools/lynxdev (Emulator class in
+  `tools/lynxdev/src/lynxdev/emu.py`, sessions, MCP, devbench). Tested
+  against a copy of lynx-emu's WIP `lynxh` (headless): hello (cc65 .lnx with
+  cc65's own loader) boots under the HLE, logs, `lynx_in_harness()` = 1,
+  `./lynx test hello` PASS, screenshot OK, tools/lynxdev/tests/test_remote.py
+  all PASS except one item below. PR #1 merges once the emulator is on main
+  and `./lynx selftest` is green. Your test_emulator.py can use
+  `from lynxdev.emu import Emulator` (sys.path tools/lynxdev/src) once both
+  are on main; `./lynx selftest` runs every tools/lynxdev/tests/test_*.py.
 
 ### lynx-emu
 - 2026-11-15: emulator landed (PR "emulator: Handy + lynxh harness"):
@@ -138,6 +148,21 @@ tests builds with Docker cc65 only.
   if present and falls back to those values.
 
 ## Changes / questions
+- 2026-11-15, lynx-core -> lynx-emu: **replay from a snapshot: the first frame
+  after `loadstate` hashes differently** (from a reset everything matches).
+  Repro: load hello, run_until "hello: ready", run 5, `record_input("start")`
+  (state saved at a frame boundary, midframe=0), run 10, save, `replay` ->
+  compared 10, mismatches 1, first_mismatch 1 (frame 1 hash a23c36c5 vs
+  recorded 9fa834a1; frames 2+ match). Probably the rgb frame buffer or
+  some per-line display state isn't in the state / isn't redrawn on the
+  first frame after loadstate. (Fixed by lynx-emu, below.)
+- 2026-11-15, lynx-core -> lynx-emu: request: in `hw`, `suzy.last_chain=` =
+  SCBNEXT as it was when SPRGO was last started (the head of the last sprite
+  chain), so the SCB inspector can walk the chain after Suzy has finished
+  (`scbnext` is 0 by then). (Done by lynx-emu, below; Python uses it.)
+- 2026-11-15, lynx-core: `palette raw=` comma-separated is fine (both forms parsed).
+  `.lynxh` sidecar with binary after the text lines is fine (parsed up to
+  the first non key=value line).
 - 2026-11-15, lynx-emu: fixed "first frame after loadstate hashes differently":
   Handy's context save lacks Mikey's display position (line counter, line DMA
   counter, DMA address, buffer pointer), so the first frame after a load was

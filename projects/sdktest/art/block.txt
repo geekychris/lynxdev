@@ -1,0 +1,5 @@
+# 4x4 solid pen 1 block (1 bpp): spr_color recolours it
+1111
+1111
+1111
+1111
