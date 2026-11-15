@@ -36,7 +36,7 @@ for (;;) {
 }
 ```
 
-- **Frank:** `games/frank_the_frog/src/main.c:240` (the loop) to `:322`
+- **Frank:** `games/frank_the_frog/src/main.c:236` (the loop) to `:318`
   (`gfx_present`); rules in `lanes.c`/`frank.c`, drawing in `render.c`.
 - **Rock Blaster:** `games/rock_blaster/src/main.c:409` to `:504`;
   `game.c` keeps the Amiga original's rules almost unchanged and `main.c` is
@@ -61,10 +61,10 @@ link to the next SCB) and Suzy draws a whole linked list of them in one go.
 **One long chain is much cheaper than many `spr_draw` calls**: each call is
 a C call, a Suzy start and a wait.
 
-Frank builds the whole screen as one chain once (`render.c:102`
+Frank builds the whole screen as one chain once (`render.c:100`
 `link_all`: background rows, 30 lane objects, ponds, Frank, HUD glyphs,
-lives, the timer bar) and then each frame only changes positions, pictures
-and colours of the SCBs (`render.c:222` `render_frame`) and draws the head.
+lives, the black strip under the playfield) and then each frame only changes positions, pictures
+and colours of the SCBs (`render.c:218` `render_frame`) and draws the head.
 Objects that leave the screen are clipped by Suzy; ones that aren't needed
 get `spr_hide(s, 1)` (the SKIP bit) instead of being unlinked.
 
@@ -89,7 +89,7 @@ by `tools/mkart.py`; Rock Blaster draws its pre-rotated ship and rocks with
 
 Scaling is free: `spr_scale(s, 0x200, 0x200)` is twice the size. Rock
 Blaster's title zooms its logo in by changing the scale each frame; Frank's
-timer bar is one pixel scaled to its length (`render.c:87`, or `spr_box`).
+background rows and HUD strips are one pixel scaled to their size (`render.c:85` `bar`, or `spr_box`).
 
 ## Clearing vs erasing
 
@@ -113,7 +113,7 @@ drawn two frames ago. Three ways to deal with that:
 
 `input_update()` once per frame; then `input_held` (what's down) and
 `input_new` (what went down this frame). Use `input_new` for one action per
-press (Frank's hops: `main.c:241-247`), `input_held` for continuous ones
+press (Frank's hops: `main.c:237-243`), `input_held` for continuous ones
 (Rock Blaster's turn, thrust and autofire: `main.c:449`). The Lynx
 convention: **PAUSE** pauses, **PAUSE then OPTION 1** restarts (Rock
 Blaster `main.c:439`), OPTION 1/2 for settings on the title screen.
