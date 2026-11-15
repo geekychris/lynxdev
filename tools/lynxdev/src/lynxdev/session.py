@@ -26,7 +26,7 @@ import threading
 import time
 from pathlib import Path
 
-from .emu import LOADABLE, Emulator, EmulatorError, repo_root
+from .emu import LOADABLE, Emulator, EmulatorError, project_dir, repo_root
 try:
     from .emu import ProtocolError as ZrcpError   # the emulator link's error
 except ImportError:  # pragma: no cover
@@ -45,7 +45,11 @@ def resolve_program(target: str | None) -> str | None:
         if not p.exists():
             raise FileNotFoundError(f"{p} not found")
         return str(p.resolve())
-    d = repo_root() / "projects" / target / "build"
+    proj = project_dir(target)
+    if proj is None:
+        raise FileNotFoundError(f"no project {target!r} in projects/ or games/ "
+                                "(games/ is the lynx_games submodule: git submodule update --init)")
+    d = proj / "build"
     cands = [c for ext in (".lnx", ".lyx") for c in d.glob(f"*{ext}")]
     if not cands:
         raise FileNotFoundError(f"nothing built for project {target!r} (./lynx build {target})")

@@ -37,8 +37,8 @@ the emulator window (headless works without it).
 | Windows | WSL2 (`wsl --install -d Ubuntu`), then the Ubuntu line inside it, Docker Desktop with WSL integration |
 
 ```sh
-git clone https://github.com/geekychris/lynxdev && cd lynxdev
-./setup.sh          # builds lynx-dev-toolchain:1, the emulator and .venv, then ./lynx selftest
+git clone --recurse-submodules https://github.com/geekychris/lynxdev && cd lynxdev
+./setup.sh          # games/ submodule, lynx-dev-toolchain:1, the emulator and .venv, then ./lynx selftest
 ./lynx doctor       # if anything is wrong: what, and the command that fixes it
 ```
 
@@ -46,16 +46,26 @@ git clone https://github.com/geekychris/lynxdev && cd lynxdev
 
 ## Games
 
-Ports of the Amiga originals (`amiga_mcp/examples`), redone for 160x102 with
+The games live in their own repo, [geekychris/lynx_games](https://github.com/geekychris/lynx_games),
+checked out here as the `games/` submodule (`setup.sh` fetches it; or
+`git submodule update --init`). Ports of the Amiga originals
+([amiga_games](https://github.com/geekychris/amiga_games)), redone for 160x102 with
 Suzy sprites. Each has a README (controls, what's kept), a headless
-play-through test and a screenshot.
+play-through test and screenshots in its `images/`. Every `./lynx` command
+finds a game by name (`./lynx run rock_blaster`); `./lynx selftest` tests
+them when the submodule is there.
 
 | | Game | What it is |
 |---|---|---|
-| <img src="docs/images/rock_blaster.png" width="160" alt="Rock Blaster"> | [Rock Blaster](projects/rock_blaster) | vector rock shooter: the original's ship, rocks and rules; Suzy sprites (pre-rotated + flipped ship, scaled title logo), the original's tune on Mikey, 50 fps |
-| <img src="docs/images/frank_the_frog.png" width="160" alt="Frank the Frog"> | [Frank the Frog](projects/frank_the_frog) | hop Frank over five lanes of traffic and a river of logs and lily pads into the four ponds; Suzy-scaled title, Mikey sound, 50 fps; a bot test fills all four ponds |
+| <img src="docs/images/games/rock_blaster.png" width="160" alt="Rock Blaster"> | [Rock Blaster](https://github.com/geekychris/lynx_games/tree/main/rock_blaster) | vector rock shooter: the original's ship, rocks and rules; Suzy sprites (pre-rotated + flipped ship, scaled title logo), the original's tune on Mikey, 50 fps |
+| <img src="docs/images/games/frank_the_frog.png" width="160" alt="Frank the Frog"> | [Frank the Frog](https://github.com/geekychris/lynx_games/tree/main/frank_the_frog) | hop Frank over five lanes of traffic and a river of logs and lily pads into the four ponds; Suzy-scaled title, Mikey sound, 50 fps; a bot test fills all four ponds |
+
+New games: `./lynx new --game <name>` (in `games/`, i.e. the lynx_games repo);
+see "Porting into lynx_games" in CLAUDE.md.
 
 ## Projects
+
+The platform's own programs, in `projects/`:
 
 | Project | What |
 |---|---|

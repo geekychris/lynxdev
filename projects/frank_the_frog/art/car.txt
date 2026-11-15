@@ -1,8 +1,0 @@
-# car facing right, 8x7: pen 7 = body (recoloured per lane), E glass, 8 light, F wheels
-........
-..7777..
-.7EE7E7.
-77777778
-77777777
-.FF..FF.
-........

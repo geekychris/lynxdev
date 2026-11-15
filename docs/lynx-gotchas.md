@@ -58,7 +58,7 @@ Things that cost time, with what to do instead.
   8 KB). With mostly empty screens, erase instead: keep one SCB set per
   screen buffer and, before updating it, draw the set that went into this
   buffer two frames ago with every pen mapped to the background colour
-  (projects/rock_blaster: `erase_begin`/`erase_end` in `src/objs.s`).
+  (games/rock_blaster: `erase_begin`/`erase_end` in `src/objs.s`).
 
 ## cc65
 
@@ -84,7 +84,7 @@ Things that cost time, with what to do instead.
 - A 32-bit multiply (`(int32_t)a * b`) costs ~1000 cycles and a 16-bit
   divide/modulo several hundred: a handful in one frame shows. Measure with
   the harness: `run_to_addr(fn)`, then to its return address, and compare
-  `status()["cycles"]` (projects/rock_blaster README, Speed).
+  `status()["cycles"]` (games/rock_blaster README, Speed).
 
 ## The harness
 

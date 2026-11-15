@@ -6,7 +6,7 @@
                                              Suzy/Mikey registers, palette, sprite chain, console)
     /api/health
     /api/commands                            every session command with help
-    /api/projects                            projects and their build output
+    /api/projects                            projects (projects/ and games/) and their build output
     /api/projects/{name}/build   POST        build (cc65 in Docker)
     /api/projects/{name}/test    POST        ./lynx test <name>
     /api/sessions                GET|POST    list | start {"project", "window", "rotate"}
@@ -33,7 +33,7 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Route
 
 from .control import ProtocolError, SessionClient, list_sessions
-from .emu import repo_root
+from .emu import all_projects, project_dir, repo_root
 from .session import resolve_program
 
 ROOT = repo_root()
@@ -136,11 +136,9 @@ async def commands(request: Request):
 
 async def projects(request: Request):
     out = []
-    for d in sorted((ROOT / "projects").iterdir()):
-        mk = d / "Makefile"
-        if mk.exists():
-            built = sorted(str(p.relative_to(ROOT)) for ext in ("*.lnx",) for p in (d / "build").glob(ext))
-            out.append({"name": d.name, "built": built, "test": (d / "test.py").exists()})
+    for d in all_projects():
+        built = sorted(str(p.relative_to(ROOT)) for ext in ("*.lnx",) for p in (d / "build").glob(ext))
+        out.append({"name": d.name, "dir": d.parent.name, "built": built, "test": (d / "test.py").exists()})
     return ok(out)
 
 
@@ -151,15 +149,16 @@ def _run(cmd, timeout=1800):
 
 async def build(request: Request):
     name = request.path_params["name"]
-    if not (ROOT / "projects" / name / "Makefile").exists():
-        return err(f"no project {name}", 404)
-    return ok(await run_in_threadpool(_run, [str(ROOT / "bin" / "lynx-make"), "-C", str(ROOT / "projects" / name)]))
+    proj = project_dir(name)
+    if proj is None:
+        return err(f"no project {name} in projects/ or games/", 404)
+    return ok(await run_in_threadpool(_run, [str(ROOT / "bin" / "lynx-make"), "-C", str(proj)]))
 
 
 async def test(request: Request):
     name = request.path_params["name"]
-    if not (ROOT / "projects" / name / "Makefile").exists():
-        return err(f"no project {name}", 404)
+    if project_dir(name) is None:
+        return err(f"no project {name} in projects/ or games/", 404)
     return ok(await run_in_threadpool(_run, [str(ROOT / "lynx"), "test", name]))
 
 

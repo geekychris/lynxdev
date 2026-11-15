@@ -1,8 +1,0 @@
-# Frank facing up, 8x7. 4 green, 5 dark green, D white, F black
-.DF..FD.
-5D4444D5
-.444444.
-..4554..
-54444445
-5.4444.5
-55....55
