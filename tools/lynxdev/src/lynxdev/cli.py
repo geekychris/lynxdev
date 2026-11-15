@@ -25,8 +25,8 @@ from pathlib import Path
 
 from .emu import Emulator, EmulatorError, save_video
 
-CONTROLS = ("Arrows = d-pad, Z/Left Alt = A (outer), X = B (inner), 1 = OPTION1, 2 = OPTION2, "
-            "Return/P = PAUSE, F5 reset, Esc quit (see emulator/README.md for the window's keys)")
+CONTROLS = ("Arrows = d-pad, Z or Left Alt = A (outer), X, Left Ctrl or Cmd = B (inner), 1 = OPTION1, "
+            "2 = OPTION2, P or Return = PAUSE, Esc quits (emulator/README.md)")
 LAYERS = ["screen"]
 from .session import resolve_program
 
