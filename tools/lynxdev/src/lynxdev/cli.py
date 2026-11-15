@@ -11,6 +11,7 @@
   lynxdev sessions                                      running sessions
   lynxdev symbols <program> [pattern]
   lynxdev sprite <in.png|in.txt> -o out.c [--name N] [--bpp B] [--frames WxH] [--palette default|image|list]
+  lynxdev arcade [--list] [--play GAME] [--all] [--devbench]   the games menu
   lynxdev devbench [--port N] [--open]                  web UI + REST + MCP over HTTP (:3690)
 
 <program> is a project name (newest build output) or a .lnx/.lys file.
@@ -290,6 +291,10 @@ def cmd_sprite(a) -> int:
 
 
 def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["arcade"]:
+        from .arcade import main as arcade
+        return arcade(argv[1:])
     ap = argparse.ArgumentParser(prog="lynxdev", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)

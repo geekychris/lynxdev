@@ -14,6 +14,57 @@
 /* major * 10000 + minor * 100 + patch (sdk/README.md: versioning rules) */
 #define LYNX_SDK_VERSION 10200
 
+/* cc65 2.18's <lynx.h> (LYNX_NATIVE=1 with an older cc65) lacks some of the
+   default palette's names: the same values as newer cc65. */
+#ifndef COLOR_TRANSPARENT
+#define COLOR_TRANSPARENT 0x00
+#endif
+#ifndef COLOR_BLACK
+#define COLOR_BLACK 0x01
+#endif
+#ifndef COLOR_RED
+#define COLOR_RED 0x02
+#endif
+#ifndef COLOR_PINK
+#define COLOR_PINK 0x03
+#endif
+#ifndef COLOR_LIGHTGREY
+#define COLOR_LIGHTGREY 0x04
+#endif
+#ifndef COLOR_GREY
+#define COLOR_GREY 0x05
+#endif
+#ifndef COLOR_DARKGREY
+#define COLOR_DARKGREY 0x06
+#endif
+#ifndef COLOR_BROWN
+#define COLOR_BROWN 0x07
+#endif
+#ifndef COLOR_PEACH
+#define COLOR_PEACH 0x08
+#endif
+#ifndef COLOR_YELLOW
+#define COLOR_YELLOW 0x09
+#endif
+#ifndef COLOR_LIGHTGREEN
+#define COLOR_LIGHTGREEN 0x0A
+#endif
+#ifndef COLOR_GREEN
+#define COLOR_GREEN 0x0B
+#endif
+#ifndef COLOR_PURPLE
+#define COLOR_PURPLE 0x0C
+#endif
+#ifndef COLOR_BLUE
+#define COLOR_BLUE 0x0D
+#endif
+#ifndef COLOR_LIGHTBLUE
+#define COLOR_LIGHTBLUE 0x0E
+#endif
+#ifndef COLOR_WHITE
+#define COLOR_WHITE 0x0F
+#endif
+
 #define LYNX_SCREEN_W   160
 #define LYNX_SCREEN_H   102
 

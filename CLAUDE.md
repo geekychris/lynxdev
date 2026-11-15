@@ -28,10 +28,22 @@ scriptable deterministically.
                             # fails if a test changed a tracked file (write output to build/)
 ./lynx doctor               # environment problems
 ./lynx devbench             # web UI + REST (/api) + MCP over HTTP (/mcp) on :3690
+./lynx arcade [--list|--play G|--all|--devbench]   # games menu: build + play in a window (scripts/arcade.sh)
 ```
 
 Builds run in Docker (image `lynx-dev-toolchain:N`, cc65 pinned in
 scripts/lib.sh); `LYNX_NATIVE=1` builds with a cc65 on PATH instead.
+
+## Docs
+
+README.md (overview, install, everyday commands), docs/install.md (installer
+`scripts/install.sh`, manual per OS, troubleshooting), docs/getting-started.md
+(tutorial), docs/game-dev.md (how a game is built; Frank the Frog and Rock Blaster
+with file:line pointers), docs/sdk.md (SDK reference), docs/debugging.md,
+docs/lynx-gotchas.md, docs/emulator-harness.md (Python API), docs/mcp.md (MCP +
+REST), docs/resources.md (external Lynx/cc65/65SC02 links; `scripts/check_links.py`
+checks every doc link), emulator/README.md (raw protocol), sdk/README.md (versions).
+When you change behaviour, update the doc that describes it.
 
 ## Two repos: the platform and the games
 

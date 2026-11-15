@@ -1,0 +1,1 @@
+{"title": "SDK test", "description": "Every SDK module on one screen: sprites, palette, small font, sound (its test checks pixels).", "controls": ["A: noise", "OPTION 2: tone sweep", "OPTION 1, PAUSE: log a line"]}
