@@ -17,6 +17,7 @@
 #   ./lynx sessions              running sessions
 #   ./lynx symbols <project> [regex]
 #   ./lynx sprite in.png|in.txt -o <dir>/src/x.c [--frames 8x8]  Suzy sprite data
+#   ./lynx arcade [--list] [--play GAME] [--all] [--devbench]  menu of the games: build + play in a window
 #   ./lynx devbench [--port 3690] [--open]                  web UI + REST + MCP over HTTP
 #   ./lynx clean <project>
 #   ./lynx selftest              build + test everything (do this before saying "done")
@@ -66,6 +67,7 @@ case "$cmd" in
   devbench|ctl|sessions|sprite)
            need_lynxdev; exec "$LYNXDEV" "$cmd" "$@" ;;
   replay)  need_lynxdev; need_emu; exec "$LYNXDEV" replay "$@" ;;
+  arcade)  need_lynxdev; need_emu; exec "$LYNXDEV" arcade "$@" ;;
   run|serve|log|shot|symbols|video|record)
            need_lynxdev; need_emu
            if [ $# -ge 1 ] && d="$(pdir "$1")"; then
@@ -162,6 +164,6 @@ case "$cmd" in
            else gmsg="games/ NOT checked out: games untested"; fi
            [ "$fails" -eq 0 ] && ok "all pass ($gmsg)" || die "$fails check(s) failed ($gmsg)" ;;
   lynxdev) need_lynxdev; exec "$LYNXDEV" "$@" ;;
-  help|-h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//' ;;
+  help|-h|--help) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//' ;;
   *)       die "unknown command '$cmd' (./lynx help)" ;;
 esac
