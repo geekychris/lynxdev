@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Lynxdev logo" width="180">
+</p>
+
 # lynxdev: a modern dev kit for the Atari Lynx, with a scriptable, debuggable emulator
 
 Write games for the **Atari Lynx** (1989) on a Mac or Linux machine (Windows
