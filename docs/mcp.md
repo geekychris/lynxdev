@@ -47,9 +47,14 @@ Addresses take numbers, `$hex`, `0x..`, symbols from the `.lbl`/`.map`
 | | |
 |---|---|
 | `GET /` | the web UI: screen, run controls, pad, log, registers, disassembly, memory, Suzy/Mikey registers, palette, sprite chain, console |
+| `GET /arcade` | the arcade page: every game in games/ with picture, description, controls; Build / Play in page / Play in window |
+| `GET /api/arcade` | the games (`?all=1`: also projects/): `name`, `dir`, `title`, `description`, `controls`, `built`, `picture` (URL or null), `error` (why its last build/start failed) |
+| `GET /api/arcade/picture/{name}.png` | a game's picture (`games/<g>/images/`, else `docs/images/games/`) |
+| `POST /api/arcade/build` | `{"game"}`: build one (`{}`: every game) |
+| `POST /api/arcade/play` | `{"game", "window": false, "rebuild": false}`: build if needed, start it running in a selected session; returns `session` and `url` (`/?session=PID&play=1`, the page live with the keyboard on). Headless: the arcade's previous in-page session is stopped |
 | `GET /api/health`, `GET /api/commands` | |
 | `GET /api/projects`, `POST /api/projects/{name}/build`, `POST /api/projects/{name}/test` | projects/ and games/ (`dir` says which) |
-| `GET/POST /api/sessions` | list / start `{"project", "window", "rotate"}` |
+| `GET/POST /api/sessions` | list / start `{"project", "window", "rotate", "mode": "paused"\|"running"}` |
 | `DELETE /api/sessions/{pid}`, `POST /api/sessions/{pid}/select` | |
 | `GET/POST /api/cmd/{command}` | any session command (JSON body or `?k=v`), on the selected session |
 | `/api/sessions/{pid}/cmd/{command}` | on a given session |
@@ -59,6 +64,8 @@ Addresses take numbers, `$hex`, `0x..`, symbols from the `.lbl`/`.map`
 curl -s localhost:3690/api/cmd/run_until -d '{"text":"hello: ready"}'
 curl -s localhost:3690/api/cmd/hw | jq .suzy
 curl -s 'localhost:3690/api/screen.png?scale=4' -o shot.png
+curl -s localhost:3690/api/arcade | jq '.games[].name'
+curl -s localhost:3690/api/arcade/play -d '{"game":"rock_blaster"}'   # then open the "url"
 ```
 
 ## Writing tests

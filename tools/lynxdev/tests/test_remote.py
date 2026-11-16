@@ -250,6 +250,62 @@ def test_devbench():
         check("REST scb_chain", st == 200 and "scbs" in r, str(r)[:200])
         check("unknown command -> 400", req("GET", "/api/cmd/nope")[0] == 400)
         check("bad session -> 404", req("GET", "/api/sessions/1/cmd/status")[0] == 404)
+
+        section("DevBench arcade (/arcade, /api/arcade)")
+        st, page = req("GET", "/arcade", raw=True)
+        check("/arcade serves the arcade page, linked to the DevBench page",
+              st == 200 and b"Lynx Arcade" in page and b'href="/"' in page)
+        check("the DevBench page links to /arcade", b'href="/arcade"' in ui)
+        st, a = req("GET", "/api/arcade")
+        on_disk = sorted(p.name for p in (ROOT / "games").glob("*/Makefile") for p in [p.parent])
+        check("/api/arcade lists every game in games/", st == 200 and [g["name"] for g in a["games"]] == on_disk
+              and a["submodule"] == bool(on_disk), str(a)[:300])
+        check("games have a title, description, controls, picture",
+              all(g["title"] and g["description"] and g["controls"] and g["picture"] for g in a["games"]),
+              str([g for g in a["games"] if not (g["title"] and g["description"] and g["controls"] and g["picture"])])[:300])
+        st, a = req("GET", "/api/arcade?all=1")
+        hello = next((g for g in a["games"] if g["name"] == "hello"), {})
+        check("?all=1 adds projects/ (hello, with docs/images/hello.png)",
+              hello.get("dir") == "projects" and hello.get("picture") == "/api/arcade/picture/hello.png", str(hello))
+        st, png = req("GET", "/api/arcade/picture/hello.png", raw=True)
+        check("picture is a PNG", st == 200 and png[:4] == b"\x89PNG")
+        if on_disk:
+            st, png = req("GET", f"/api/arcade/picture/{on_disk[0]}.png", raw=True)
+            check(f"game picture ({on_disk[0]})", st == 200 and png[:4] == b"\x89PNG")
+        check("unknown picture -> 404", req("GET", "/api/arcade/picture/nope.png")[0] == 404)
+        check("build unknown game -> 404", req("POST", "/api/arcade/build", {"game": "nope"})[0] == 404)
+        check("play unknown game -> 404", req("POST", "/api/arcade/play", {"game": "nope"})[0] == 404)
+        st, r = req("POST", "/api/arcade/build", {"game": "hello"})
+        check("POST /api/arcade/build {game}", st == 200 and r["ok"] and r["game"] == "hello", str(r)[-300:])
+        arcade_pids = []
+        try:
+            st, r = req("POST", "/api/arcade/play", {"game": "hello"})
+            p1 = r.get("session", {}).get("pid")
+            arcade_pids.append(p1)
+            check("POST /api/arcade/play starts a running session, selected, with the page URL",
+                  st == 200 and p1 and r["session"]["mode"] == "running" and r["url"] == f"/?session={p1}&play=1"
+                  and req("GET", "/api/cmd/status")[1].get("program", "").endswith("hello.lnx"), str(r)[:300])
+            time.sleep(0.5)
+            st, s1 = req("GET", "/api/cmd/status")
+            time.sleep(0.5)
+            st, s2 = req("GET", "/api/cmd/status")
+            check("the arcade's session free-runs (frames advance on their own)",
+                  not s2["paused"] and s2["frame"] > s1["frame"], f"{s1.get('frame')} -> {s2.get('frame')}")
+            req("POST", "/api/cmd/hold", {"keys": "A"})
+            st, r = req("POST", "/api/cmd/release", {"keys": "A"})
+            check("hold / release (the page's keyboard) on it", st == 200 and r["held"] == [], str(r))
+            st, r = req("POST", "/api/arcade/play", {"game": "hello"})
+            p2 = r.get("session", {}).get("pid")
+            arcade_pids.append(p2)
+            time.sleep(0.5)
+            live = {s["pid"] for s in list_sessions()}
+            check("playing again stops the arcade's previous in-page session",
+                  st == 200 and r["stopped"] == p1 and p1 not in live and p2 in live, str(r)[:300])
+        finally:
+            for p in arcade_pids:
+                if p and any(s["pid"] == p for s in list_sessions()):
+                    req("DELETE", f"/api/sessions/{p}")
+
         init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
             "protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}}}
         r = urllib.request.Request(base + "/mcp", data=json.dumps(init).encode(), method="POST", headers={

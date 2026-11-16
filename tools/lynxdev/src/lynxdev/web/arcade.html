@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lynx Arcade</title>
+<style>
+:root {
+  --bg: #f3f2ee; --panel: #ffffff; --ink: #1c1c1a; --muted: #6a6a64; --line: #d8d7cf;
+  --accent: #e0662a; --accent2: #2a62d8; --ok: #1f8a3b; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141413; --panel: #1e1e1c; --ink: #ecebe5; --muted: #9a9991; --line: #34332f;
+          --accent: #ff8a4c; --accent2: #6aa0ff; --ok: #4cc46b; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px;
+         border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 16px; margin: 0 12px 0 0; white-space: nowrap; }
+header h1 span { display: inline-block; width: 26px; height: 14px; margin-right: 8px; vertical-align: -2px;
+  border-radius: 7px; background: linear-gradient(90deg, #e0662a, #f2c418); }
+header a { color: var(--accent2); }
+button { font: inherit; padding: 5px 9px; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--bg); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--accent2); }
+button.primary { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+button:disabled { opacity: .5; cursor: wait; }
+.status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.err { color: var(--accent); }
+.keys { padding: 8px 16px 0; color: var(--muted); font-size: 12px; }
+main { padding: 16px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+        display: flex; flex-direction: column; min-width: 0; }
+.pic { width: 100%; aspect-ratio: 160/102; background: #000; display: flex; align-items: center; justify-content: center;
+       color: #888; font-size: 12px; }
+.pic img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block; }
+.card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.card h2 { font-size: 16px; margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.badge { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor;
+         color: var(--muted); white-space: nowrap; }
+.badge.built { color: var(--ok); }
+.desc { margin: 0; }
+details { font-size: 12px; }
+summary { cursor: pointer; color: var(--muted); }
+.controls { margin: 4px 0 0; padding-left: 18px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.card .err { font-family: var(--mono); font-size: 12px; word-break: break-word; }
+.card .row { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+.empty { color: var(--muted); padding: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span></span>Lynx Arcade</h1>
+  <a href="/">DevBench</a>
+  <label><input type="checkbox" id="all"> projects/ too</label>
+  <button id="buildall">Build all</button>
+  <span class="status" id="msg"></span>
+</header>
+<div class="keys" id="keys"></div>
+<main id="games"><div class="empty">Loading…</div></main>
+<script>
+const $ = s => document.querySelector(s);
+const msg = (t, bad) => { $('#msg').textContent = t; $('#msg').className = 'status' + (bad ? ' err' : ''); };
+try { $('#all').checked = localStorage.getItem('lynx-arcade-all') === '1'; } catch (e) {}
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} :
+    {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+function card(g) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `<div class="pic"></div>
+    <div class="body">
+      <h2><span class="t"></span><span class="badge"></span></h2>
+      <p class="desc"></p>
+      <details><summary>Controls</summary><ul class="controls"></ul></details>
+      <div class="err"></div>
+      <div class="row"><button class="primary inpage">Play in page</button>
+      <button class="win">Play in window</button><button class="build">Build</button></div>
+    </div>`;
+  if (g.picture) {
+    const img = document.createElement('img');
+    img.src = g.picture; img.alt = g.title; img.loading = 'lazy';
+    el.querySelector('.pic').appendChild(img);
+  } else el.querySelector('.pic').textContent = 'no picture (images/' + g.name + '.png)';
+  el.querySelector('.t').textContent = g.title + (g.dir === 'projects' ? ' (projects/)' : '');
+  const b = el.querySelector('.badge');
+  b.textContent = g.built ? 'built' : 'not built';
+  if (g.built) b.classList.add('built');
+  el.querySelector('.desc').textContent = g.description || '';
+  const ul = el.querySelector('.controls');
+  (g.controls.length ? g.controls : ['(see the README)']).forEach(c => {
+    const li = document.createElement('li'); li.textContent = c; ul.appendChild(li);
+  });
+  el.querySelector('.err').textContent = g.error || '';
+  el.querySelector('.inpage').onclick = e => play(g, false, e.target);
+  el.querySelector('.win').onclick = e => play(g, true, e.target);
+  el.querySelector('.build').onclick = e => build(g, e.target);
+  return el;
+}
+
+async function play(g, window, btn) {
+  btn.disabled = true;
+  msg(`${g.built ? 'starting' : 'building + starting'} ${g.title}…`);
+  try {
+    const r = await api('/api/arcade/play', {game: g.name, window});
+    if (window) { msg(`${g.title} is running in a window (session ${r.session.pid}); Esc closes it`); await load(); }
+    else location.href = r.url;
+  } catch (ex) { msg(`${g.title}: ${ex.message}`, true); await load(true); }
+  btn.disabled = false;
+}
+
+async function build(g, btn) {
+  btn.disabled = true;
+  msg(`building ${g.title}…`);
+  try {
+    const r = await api('/api/arcade/build', {game: g.name});
+    msg(r.ok ? `${g.title} built` : `${g.title}: build failed`, !r.ok);
+  } catch (ex) { msg(ex.message, true); }
+  btn.disabled = false;
+  await load(true);
+}
+
+async function load(quiet) {
+  try {
+    const a = await api('/api/arcade' + ($('#all').checked ? '?all=1' : ''));
+    const box = $('#games');
+    box.innerHTML = '';
+    if (!a.games.length) box.innerHTML = '<div class="empty">No games: games/ (the lynx_games submodule) ' +
+      (a.submodule ? 'has no game with a Makefile.' : "isn't checked out: git submodule update --init") + '</div>';
+    a.games.forEach(g => box.appendChild(card(g)));
+    $('#keys').textContent = 'Keys in the page: arrows = d-pad, Z = A, X = B, 1 / 2 = Option 1 / 2, P or Return = Pause. ' +
+      'In a window: ' + a.window_keys.replace(/ \(emulator\/README\.md\)$/, '') + '.';
+    if (!quiet) msg(`${a.games.length} ${a.games.length === 1 ? 'game' : 'games'}, ${a.games.filter(g => g.built).length} built`);
+  } catch (ex) { msg(ex.message, true); }
+}
+
+$('#all').onchange = () => { try { localStorage.setItem('lynx-arcade-all', $('#all').checked ? '1' : '0'); } catch (e) {} load(); };
+$('#buildall').onclick = async e => {
+  e.target.disabled = true;
+  msg('building every game (a minute or two)…');
+  try {
+    const r = await api('/api/arcade/build', {});
+    const bad = r.results.filter(x => !x.ok).map(x => x.game);
+    msg(bad.length ? 'build failed: ' + bad.join(', ') : `built ${r.results.length} games`, bad.length);
+  } catch (ex) { msg(ex.message, true); }
+  e.target.disabled = false;
+  await load(true);
+};
+load();
+</script>
+</body>
+</html>

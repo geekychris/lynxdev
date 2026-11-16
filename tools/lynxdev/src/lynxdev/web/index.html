@@ -18,6 +18,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 syste
 header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px;
          border-bottom: 1px solid var(--line); background: var(--panel); }
 header h1 { font-size: 16px; margin: 0 12px 0 0; white-space: nowrap; }
+header a { color: var(--accent2); }
 header h1 span { display: inline-block; width: 26px; height: 14px; margin-right: 8px; vertical-align: -2px;
   border-radius: 7px; background: linear-gradient(90deg, #e0662a, #f2c418); }
 main { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 16px; padding: 16px; }
@@ -49,6 +50,7 @@ pre { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 
 <body>
 <header>
   <h1><span></span>Lynx DevBench</h1>
+  <a href="/arcade" id="arcade" title="every game in games/: picture, controls, Build / Play">Arcade</a>
   <select id="sessions" title="session"></select>
   <select id="projects" title="project"></select>
   <button id="boot" class="primary">Boot headless</button>
@@ -67,6 +69,7 @@ pre { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 
         <button data-run="1">+1 frame</button><button data-run="60">+1 s</button><button data-run="300">+5 s</button>
         <button id="pause">Pause</button><button id="resume">Resume</button>
         <label><input type="checkbox" id="live"> live</label>
+        <label title="Arrows = d-pad, Z = A, X = B, 1 / 2 = Option 1 / 2, P or Return = Pause"><input type="checkbox" id="kbd"> keyboard</label>
         <span class="status" id="stat"></span>
       </div>
       <div class="row" style="align-items:flex-start; gap:16px">
@@ -152,8 +155,10 @@ const hex = (v, n) => (v ?? 0).toString(16).toUpperCase().padStart(n, "0");
 function msg(t, bad) { $("msg").textContent = t; $("msg").className = "status" + (bad ? " err" : ""); }
 async function guard(fn) { try { await fn(); } catch (e) { msg(e.message, true); } }
 
+let nSessions = 0;
 async function loadSessions() {
   const ss = await api("/api/sessions");
+  nSessions = ss.length;
   $("sessions").innerHTML = ss.length ? ss.map(s => `<option value="${s.pid}" ${s.selected ? "selected" : ""}>` +
     `pid ${s.pid} · ${s.window ? "window" : "headless"} · ${(s.program || "no cart").split("/").pop()}</option>`).join("")
     : "<option>no sessions</option>";
@@ -246,8 +251,53 @@ $("send").onclick = () => act(async () => {
   $("out").textContent = typeof r === "string" ? r : (r.listing || r.dump || r.output || JSON.stringify(r, null, 1));
 });
 $("cmd").onkeydown = $("args").onkeydown = (e) => { if (e.key === "Enter") $("send").click(); };
-setInterval(() => { if ($("live").checked && !busy) act(async () => {}); }, 300);
-guard(async () => { await loadProjects(); await refresh(); });
+// live: the screen at ~20 fps, the rest (log, registers, disassembly, tab) every 0.3 s, or every
+// second while the keyboard plays the game
+let tick = 0, screenBusy = false;
+setInterval(() => {
+  if (!$("live").checked) return;
+  tick++;
+  if (!busy && tick % ($("kbd").checked ? 10 : 3) === 0) { act(async () => {}); return; }
+  if (screenBusy || !nSessions) return;
+  screenBusy = true;
+  const img = new Image();
+  img.onload = () => { $("screen").src = img.src; screenBusy = false; };
+  img.onerror = () => { screenBusy = false; };
+  img.src = "/api/screen.png?scale=1&t=" + Date.now();
+}, 50);
+
+// keyboard: the window's keys (cli.CONTROLS) held while down, released on key up
+const KEYS = {ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT", z: "A", Z: "A",
+  x: "B", X: "B", "1": "OPTION1", "2": "OPTION2", p: "PAUSE", P: "PAUSE", Enter: "PAUSE"};
+const typing = (e) => /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) && e.target.type !== "checkbox";
+document.addEventListener("keydown", (e) => {
+  const k = KEYS[e.key];
+  if (!$("kbd").checked || !k || typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+  e.preventDefault();
+  if (e.repeat || held.has(k)) return;
+  held.add(k);
+  guard(() => cmd("hold", {keys: k}));
+});
+document.addEventListener("keyup", (e) => {
+  const k = KEYS[e.key];
+  if (!k || !held.has(k)) return;
+  held.delete(k);
+  guard(() => cmd("release", {keys: k}));
+});
+window.addEventListener("blur", () => { if (held.size) { held.clear(); guard(() => cmd("release")); } });
+
+// /?session=PID&play=1 (the arcade's "Play in page"): that session, live, keyboard on
+const params = new URLSearchParams(location.search);
+if (params.get("play")) { $("live").checked = true; $("kbd").checked = true; }
+guard(async () => {
+  if (params.get("session")) await api(`/api/sessions/${params.get("session")}/select`, {});
+  await loadProjects(); await refresh();
+  if (params.get("play")) {
+    const s = (await api("/api/sessions")).find(x => x.selected);
+    msg(`playing ${(s && s.program || "").split("/").pop()}: arrows, Z = A, X = B, 1/2 = options, P = pause`);
+    $("screen").scrollIntoView({block: "nearest"});
+  }
+});
 </script>
 </body>
 </html>
