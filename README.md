@@ -131,9 +131,17 @@ finds in `games/` with a one-line description, builds the one you pick and
 opens it in a window; when you close the window you're back in the menu.
 
 ```
-Lynx arcade  (2 games)
-  1  Frank the Frog  Hop Frank across five lanes of traffic and a river of logs and lily-pad rafts…
-  2  Rock Blaster    A vector rock shooter.
+Lynx arcade  (10 games)
+  1  Boing Twist     A twisty puzzle on the Boing ball.
+  2  Bullion Dash    Collect all the gold on the screen, dig holes in the brick floors, keep away …
+  3  Frank the Frog  Hop Frank across five lanes of traffic and a river of logs and lily-pad rafts…
+  4  Jump Quest      RJ and Dale's side-scrolling platformer.
+  5  Lunar Rider     Drive a moon buggy along a scrolling lunar surface with parallax mountains.
+  6  Miner Meteor    In each of six caverns collect every key to unlock the exit, then reach it be…
+  7  Nova Defense    Defend the base against a staggered swarm of 48 aliens in three kinds (eye po…
+  8  Orb Hunter      Explore the lost caverns.
+  9  Rock Blaster    A vector rock shooter.
+ 10  Sky Knights     Joust on flying mounts.
 
 number = play, i<number> = info/controls, r = rescan, q = quit >
 ```
@@ -150,6 +158,28 @@ Left Ctrl / Cmd = B (inner), 1 / 2 = OPTION 1 / 2, P or Return = PAUSE, Esc
 closes the window. A game can describe itself in `game.json`
 (`{"title", "description", "controls"}`); otherwise the arcade reads its
 README.
+
+### Every way to run a game
+
+A game is named by its directory (`miner_meteor`); `projects/` names
+(`hello`, `sdktest`) work the same, and `run`/`serve` also take a `.lnx`
+file. Each command builds first if needed.
+
+| To... | Run | What you get |
+|---|---|---|
+| pick from a menu | `./lynx arcade` | the menu above; a window per game, back to the menu on Esc |
+| play one game | `./lynx arcade --play miner_meteor` (name or menu number) | straight into its window |
+| play and look inside | `./lynx arcade --devbench`, or `./lynx run <game>` with `./lynx devbench --open` | the window, plus the live screen, registers, memory, Suzy/Mikey and log at http://localhost:3690 |
+| play in the browser | `./lynx devbench --open`, pick the game in the project list, **Build**, then **Boot headless** (or **Boot in window**) | the game in the web UI; send buttons with the d-pad controls or **Press** (`UP+A`) |
+| drive it from a script | `./lynx serve <game> [--window]`, then `./lynx ctl <cmd>` | a paused session that runs frames on command (`./lynx ctl help`) |
+| run it with no window | `./lynx arcade --play <game> --headless --frames 300 -o shot.png` | a screenshot after N frames |
+| test it | `./lynx test <game>` | its play-through bot (`test.py`) |
+| capture it | `./lynx shot`, `./lynx video`, `./lynx record` / `./lynx replay` | PNG, GIF/MP4, input recorded and replayed frame for frame |
+| let Claude play or debug it | Claude Code in this directory (`.mcp.json` server `lynx`) | the same controls as MCP tools (`emu_boot`, `emu_press`, `emu_look`, ...) |
+
+`./lynx sessions` lists running sessions; [docs/debugging.md](docs/debugging.md)
+covers breakpoints, stepping and memory, [docs/mcp.md](docs/mcp.md) the MCP
+tools and REST API.
 
 New games: `./lynx new --game <name>`, then "Porting into lynx_games" in
 [CLAUDE.md](CLAUDE.md).
