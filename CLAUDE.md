@@ -28,6 +28,8 @@ scriptable deterministically.
                             # fails if a test changed a tracked file (write output to build/)
 ./lynx doctor               # environment problems
 ./lynx devbench             # web UI + REST (/api) + MCP over HTTP (/mcp) on :3690
+                            # /arcade: every game (arcade.games()), Build / Play in page / window;
+                            # /api/arcade, /api/arcade/{build,play}, /api/arcade/picture/<g>.png
 ./lynx arcade [--list|--play G|--all|--devbench]   # games menu: build + play in a window (scripts/arcade.sh)
 ```
 

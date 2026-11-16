@@ -16,7 +16,9 @@ controls come from `<game>/game.json` if it has one:
 
 otherwise from its README.md: the first heading (without "(Atari Lynx)"),
 the first sentence of the first paragraph, and the rows of the table under
-"## Controls".
+"## Controls". Its picture (DevBench's /arcade page) is `<game>/images/<game>.png`,
+else `<game>/images/<game>_title.png`, else the first PNG in `<game>/images/`,
+else `docs/images/games/<game>.png` (or `docs/images/<game>.png`).
 """
 from __future__ import annotations
 
@@ -79,6 +81,21 @@ def _readme_meta(readme: Path) -> dict:
     return meta
 
 
+def picture(p: Path) -> Path | None:
+    """A game's picture: games/<g>/images/ first, then docs/images/games/."""
+    imgs = p / "images"
+    for c in (imgs / f"{p.name}.png", imgs / f"{p.name}_title.png",
+              *(sorted(imgs.glob("*.png")) if imgs.is_dir() else []),
+              ROOT / "docs" / "images" / "games" / f"{p.name}.png", ROOT / "docs" / "images" / f"{p.name}.png"):
+        if c.is_file():
+            return c
+    return None
+
+
+def find(name: str, include_projects: bool = True) -> dict | None:
+    return next((g for g in games(include_projects) if g["name"] == name), None)
+
+
 def games(include_projects: bool = False) -> list[dict]:
     """Every game (games/*/ with a Makefile), plus projects/ with include_projects."""
     out = []
@@ -102,7 +119,8 @@ def games(include_projects: bool = False) -> list[dict]:
             out.append({"name": p.name, "dir": d, "path": str(p),
                         "title": meta["title"] or p.name.replace("_", " ").title(),
                         "description": meta["description"], "controls": meta["controls"],
-                        "built": lnx.is_file(), "has_test": (p / "test.py").is_file()})
+                        "built": lnx.is_file(), "has_test": (p / "test.py").is_file(),
+                        "picture": str(pic.relative_to(ROOT)) if (pic := picture(p)) else None})
     return out
 
 

@@ -98,6 +98,7 @@ $EDITOR games/mygame/src/main.c
 ./lynx run mygame              # builds, opens a window
 ./lynx test mygame             # headless test (games/mygame/test.py)
 ./lynx devbench --open         # look inside: screen, registers, memory, Suzy/Mikey, sprites
+                               # (and http://127.0.0.1:3690/arcade: every game, Play in the page)
 ```
 
 Then follow [docs/getting-started.md](docs/getting-started.md), a tutorial
@@ -170,7 +171,9 @@ file. Each command builds first if needed.
 | pick from a menu | `./lynx arcade` | the menu above; a window per game, back to the menu on Esc |
 | play one game | `./lynx arcade --play miner_meteor` (name or menu number) | straight into its window |
 | play and look inside | `./lynx arcade --devbench`, or `./lynx run <game>` with `./lynx devbench --open` | the window, plus the live screen, registers, memory, Suzy/Mikey and log at http://localhost:3690 |
-| play in the browser | `./lynx devbench --open`, pick the game in the project list, **Build**, then **Boot headless** (or **Boot in window**) | the game in the web UI; send buttons with the d-pad controls or **Press** (`UP+A`) |
+| play in the browser | `./lynx devbench`, then http://127.0.0.1:3690/arcade: **Play in page** | the game live in the DevBench screen, played with the keyboard (arrows, Z = A, X = B, 1/2, P), with the log, registers, memory and Suzy/Mikey beside it |
+| pick from a page of pictures | http://127.0.0.1:3690/arcade (`./lynx devbench`) | every game with its picture, description and controls; **Build**, **Play in page**, **Play in window** |
+| boot any project in the browser | `./lynx devbench --open`, pick it in the project list, **Build**, then **Boot headless** (or **Boot in window**) | a paused session in the web UI; the d-pad buttons, **Press** (`UP+A`), or tick **keyboard** and **live** |
 | drive it from a script | `./lynx serve <game> [--window]`, then `./lynx ctl <cmd>` | a paused session that runs frames on command (`./lynx ctl help`) |
 | run it with no window | `./lynx arcade --play <game> --headless --frames 300 -o shot.png` | a screenshot after N frames |
 | test it | `./lynx test <game>` | its play-through bot (`test.py`) |
@@ -260,9 +263,28 @@ search, the log channel, record/replay and save states:
 
 The live screen, run/step controls, a d-pad, the guest log, registers and
 disassembly, breakpoints, a memory viewer, Suzy and Mikey registers, the
-palette, the sprite chain inspector and a command console. Everything is
+palette, the sprite chain inspector and a command console. Tick **live**
+for a ~20 fps screen and **keyboard** to play with the keys (arrows = d-pad,
+Z = A, X = B, 1 / 2 = Option 1 / 2, P or Return = Pause). Everything is
 also REST (`curl localhost:3690/api/cmd/regs`) and MCP over HTTP at
 `/mcp`. [docs/mcp.md](docs/mcp.md).
+
+**The arcade page**, http://127.0.0.1:3690/arcade (the **Arcade** link in
+the DevBench header), shows every game in games/ with its picture,
+description and controls (the same discovery as `./lynx arcade`, so a game
+pulled into games/ appears on the next page load; **projects/ too** adds
+hello and sdktest). Each game has:
+
+- **Build**: builds it (a failed build's reason stays on the card);
+- **Play in page**: builds it if needed, starts it running in a headless
+  session and opens the DevBench page on it, live, with the keyboard on
+  (playing another game in the page stops the previous one);
+- **Play in window**: the same in an emulator window (Esc closes it).
+
+The picture is `games/<g>/images/<g>.png` (else `<g>_title.png`, any PNG in
+`images/`, or `docs/images/games/<g>.png`).
+
+![The arcade page](docs/images/devbench-arcade.png)
 
 ## Working with Claude Code
 
